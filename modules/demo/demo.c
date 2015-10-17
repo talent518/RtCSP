@@ -1,0 +1,53 @@
+#include "mod_demo.h"
+
+void demo_conn_accept(conn_t *ptr) {
+	conn_info_ex(ptr,"accept connection");
+}
+
+void demo_conn_close(conn_t *ptr) {
+	conn_info_ex(ptr,"close connection");
+}
+
+void demo_conn_recv(conn_t *ptr,const char *data, int data_len) {
+}
+
+void demo_conn_denied(conn_t *ptr) {
+}
+
+void demo_thread_init(worker_thread_t *thread) {
+	printf("%s[%d]...\n",__func__, thread->id);
+}
+
+void demo_thread_destory(worker_thread_t *thread) {
+	printf("%s[%d]...\n",__func__, thread->id);
+}
+
+void demo_start() {
+	printf("%s...\n",__func__);
+}
+
+void demo_stop() {
+	printf("%s...\n",__func__);
+}
+
+char *demo_user(conn_t *ptr, const char *data, int datalen) {
+}
+
+char *demo_profile(conn_t *ptr, const char *data, int datalen) {
+}
+
+conn_recv_t demo_recvs[]={
+	{"demo.user", demo_user},
+	{"demo.profile", demo_profile}
+};
+rtcsp_module_t demo_module={
+	demo_start,
+	demo_stop,
+	demo_thread_init,
+	demo_thread_destory,
+	demo_conn_accept,
+	demo_conn_denied,
+	demo_conn_close,
+	demo_recvs,
+	sizeof(demo_recvs)/sizeof(conn_recv_t)
+};

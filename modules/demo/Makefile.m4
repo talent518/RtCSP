@@ -1,0 +1,1 @@
+RTCSP_NEW_MODULE(demo, demo.c)

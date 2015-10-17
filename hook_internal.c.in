@@ -1,0 +1,7 @@
+#include "RtCSP.h"
+#include "hook.h"
+@extincludes@
+
+int rtcsp_length = @extlength@;
+char *rtcsp_names[] = {@extnames@};
+rtcsp_module_t *rtcsp_modules[]={@extmodules@};
