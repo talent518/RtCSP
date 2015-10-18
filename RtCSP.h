@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <glib.h>
 
 #include "config.h"
 #include "conn.h"
@@ -35,19 +36,22 @@
 typedef void (*server_func_t)(void);
 typedef void (*thread_func_t)(worker_thread_t*);
 typedef void (*conn_func_t)(conn_t*);
-typedef char *(*conn_recv_func_t)(conn_t*,const char *, int);
+typedef int (*conn_accept_func_t)(conn_t*);
+typedef int (*conn_recv_func_t)(conn_t*,const char *, int, char **);
 
 typedef struct
 {
 	char *key;
 	conn_recv_func_t call;
 } conn_recv_t;
+
 typedef struct
 {
 	server_func_t start,stop;
 	thread_func_t thread_init,thread_destory;
-	conn_func_t conn_accept,conn_denied,conn_close;
-	conn_recv_t *conn_recv;
+	conn_accept_func_t conn_accept;
+	conn_func_t conn_denied,conn_close;
+	conn_recv_t *conn_recvs;
 	size_t conn_recv_len;
 } rtcsp_module_t;
 
@@ -68,5 +72,7 @@ extern int rtcsp_maxrecvs;
 extern int rtcsp_length;
 extern char *rtcsp_names[];
 extern rtcsp_module_t *rtcsp_modules[];
+
+extern GHashTable *ht_conn_recvs;
 
 #endif

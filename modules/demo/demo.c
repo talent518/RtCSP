@@ -1,14 +1,13 @@
 #include "mod_demo.h"
 
-void demo_conn_accept(conn_t *ptr) {
+int demo_conn_accept(conn_t *ptr) {
 	conn_info_ex(ptr,"accept connection");
+
+	return 0;
 }
 
 void demo_conn_close(conn_t *ptr) {
 	conn_info_ex(ptr,"close connection");
-}
-
-void demo_conn_recv(conn_t *ptr,const char *data, int data_len) {
 }
 
 void demo_conn_denied(conn_t *ptr) {
@@ -30,10 +29,16 @@ void demo_stop() {
 	printf("%s...\n",__func__);
 }
 
-char *demo_user(conn_t *ptr, const char *data, int datalen) {
+int demo_user(conn_t *ptr, const char *data, int datalen, char **retbuf) {
+	conn_info(ptr);
+
+	return 0;
 }
 
-char *demo_profile(conn_t *ptr, const char *data, int datalen) {
+int demo_profile(conn_t *ptr, const char *data, int datalen, char **retbuf) {
+	conn_info(ptr);
+
+	return 0;
 }
 
 conn_recv_t demo_recvs[]={

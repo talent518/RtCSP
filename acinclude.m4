@@ -110,9 +110,34 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 	done
 ])
 
+dnl
+dnl RTCSP_NEW_MODULE(extname, sources [, shared]])
+dnl
+dnl Includes an module in the build.
+dnl
+dnl "extname" is the name of the modules/ subdir where the module resides.
+dnl "sources" is a list of files relative to the subdir which are used
+dnl to build the module.
+dnl "shared" can be set to "shared" or "yes" to build the module as
+
+AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
+	let extbenchsize++
+	test "$extbenchnames" && extbenchnames="$extbenchnames,"
+	extbenchnames="$extbenchnames\"$1\""
+	test "$extbenchmodules" && extbenchmodules="$extbenchmodules,"
+	extbenchmodules="$extbenchmodules\&$1_module"
+	test "$extbenchincludes" && extbenchincludes="$extbenchincludes\n"
+	extbenchincludes="$extbenchincludes#include \"modules/$1/mod_bench.h\""
+	for file in $2
+	do
+		extbenchsources="$extbenchsources modules/$1/$file"
+	done
+])
+
 AC_DEFUN([RTCSP_MAKE_MODULE],[
 	cat hook_internal.c.in | sed -e "s'@extincludes@'$extincludes'" -e "s'@extnames@'$extnames'" -e "s'@extmodules@'$extmodules'" -e "s'@extlength@'$extsize'" > hook_internal.c
+	cat bench_internal.c.in | sed -e "s'@extbenchincludes@'$extbenchincludes'" -e "s'@extbenchnames@'$extbenchnames'" -e "s'@extbenchmodules@'$extbenchmodules'" -e "s'@extbenchlength@'$extbenchsize'" > bench_internal.c
 
-	cat Makefile.am.in | sed -e "s'@extsources@'$extsources'" > Makefile.am
+	cat Makefile.am.in | sed -e "s'@extsources@'$extsources'" -e "s'@extbenchsources@'$extbenchsources'" > Makefile.am
 	automake --add-missing --foreign 1>&2 2> /dev/null
 ])

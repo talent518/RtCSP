@@ -1,6 +1,6 @@
-#include "RtCSP.h"
-#include "getopt.h"
 #include "config.h"
+#include "getopt.h"
+#include "RtCSP.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +29,7 @@ static const opt_struct OPTIONS[] =
 	{'?', 0, "usage"},/* help alias (both '?' and 'usage') */
 	{'H', 0, "hide-args"},
 	{'v', 0, "version"},
+	{'m', 0, "module"},
 	{'b', 1, "backlog"},
 	{'s', 1, "service"},
 
@@ -68,8 +69,9 @@ static void rtcsp_usage(char *argv0)
 			"\n"
 			"  options:\n"
 			"  -h,-?                   This help\n"
-			"  -H                      Hide any passed arguments from external tools.\n"
+			"  -H                      Hide any passed arguments from external tools\n"
 			"  -v                      Version number\n"
+			"  -m                      The display module list\n"
 			"\n"
 			"  --host <IP>             Listen host (default: %s)\n"
 			"  --port <port>           Listen port (default: %d)\n"
@@ -109,7 +111,7 @@ int main(int argc, char *argv[])
 #endif
 
 	volatile int exit_status = 0;
-	int c;
+	int c,i,j;
 	/* temporary locals */
 	char *serv_opt=NULL;
 	int hide_argv = 0;
@@ -123,7 +125,6 @@ int main(int argc, char *argv[])
 
 	while ((c = rtcsp_getopt(argc, argv, OPTIONS, &rtcsp_optarg, &rtcsp_optind, 0, 2))!=-1)
 	{
-		printf("%c: %x\n", c, rtcsp_optarg);
 		switch (c)
 		{
 			case OPT_HOST:
@@ -159,6 +160,17 @@ int main(int argc, char *argv[])
 			case 'v': /* show RtCSP version & quit */
 				printf("RtCSP %s (built: %s %s) %s\nCopyright (c) 1997-2012 The Abao\n%s", RTCSP_NAME, __DATE__, __TIME__);
 				exit_status=0;
+				goto out;
+				break;
+
+			case 'm': /* module list */
+				for(i=0;i<rtcsp_length;i++) {
+					printf("%s: ",rtcsp_names[i]);
+					for(j=0;j<rtcsp_modules[i]->conn_recv_len;j++) {
+						printf("%s ", rtcsp_modules[i]->conn_recvs[j].key);
+					}
+					printf("\n");
+				}
 				goto out;
 				break;
 

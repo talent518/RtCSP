@@ -1,0 +1,6 @@
+#include "bench.h"
+@extbenchincludes@
+
+int bench_length = @extbenchlength@;
+char *bench_names[] = {@extbenchnames@};
+bench_module_t *bench_modules[]={@extbenchmodules@};
