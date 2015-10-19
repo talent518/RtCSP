@@ -15,6 +15,8 @@ AM_INIT_AUTOMAKE(M4_RTCSP_NAME, M4_RTCSP_VERSION)
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_RANLIB
+AC_PROG_LIBTOOL
 
 # Checks for libraries.
 
@@ -50,10 +52,12 @@ AC_CHECK_LIB([event], event_base_loop,,[AC_MSG_ERROR([libevent support requested
 AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([glib-2.0 support requested, but not found])])
 AC_ARG_ENABLE(debug, [  --enable-debug turn on debug], CFLAGS="$CFLAGS -O0 -DDEBUG")
 
+\cp Makefile.am.in Makefile.am
+
 sinclude(modules/Makefile.m4)
 
-AC_CONFIG_FILES([Makefile])
-
 RTCSP_MAKE_MODULE
+
+AC_CONFIG_FILES([Makefile $RTCSP_OUTPUT_FILES])
 
 AC_OUTPUT
