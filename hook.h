@@ -4,12 +4,6 @@
 #include "conn.h"
 #include "loop_event.h"
 
-#define HOOK_TYPE_ACCEPT 'a'
-#define HOOK_TYPE_RECV 'r'
-#define HOOK_TYPE_DENIED 'd'
-#define HOOK_TYPE_START 'b'
-#define HOOK_TYPE_STOP 'e'
-
 int hook_conn_accept(conn_t *ptr);
 void hook_conn_close(conn_t *ptr);
 void hook_conn_recv(conn_t *ptr,const char *data, int data_len);

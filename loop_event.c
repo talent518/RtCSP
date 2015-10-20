@@ -11,6 +11,7 @@
 #include "RtCSP.h"
 #include "conn.h"
 #include "loop_event.h"
+#include "hook.h"
 
 static pthread_mutex_t init_lock, conn_lock;
 static pthread_cond_t init_cond;

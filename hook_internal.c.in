@@ -1,5 +1,4 @@
 #include "RtCSP.h"
-#include "hook.h"
 @extincludes@
 
 int rtcsp_length = @extlength@;

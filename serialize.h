@@ -26,12 +26,6 @@
 #define SRL_TYPE_HASHTABLE				'h'
 #define SRL_TYPE_HASHTABLE2				'H'
 
-#ifdef DEBUG
-	#define dprintf(...) printf("on line %d of ", __LINE__);printf(__VA_ARGS__)
-#else
-	#define dprintf(...)
-#endif
-
 #define _SFT_ARG8(type,object,property,length,size,memsize,format,isint,func,help) {#property, strlen(#property), type, isint, offsetof(object,property), help, length, size, memsize, format, func}
 #define _SFT_ARG7(type,object,property,length,size,memsize,format,help) _SFT_ARG8(type, object, property, length, size, memsize, format, false, NULL, help)
 #define _SFT_ARG6(type,object,property,length,size,help) _SFT_ARG7(type, object, property, offsetof(object, length), size, 0, NULL, help)

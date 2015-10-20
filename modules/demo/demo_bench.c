@@ -1,4 +1,4 @@
-#include "mod_bench.h"
+#include "mod_bench_demo.h"
 
 int demo_user(conn_t *ptr, const char *data, int datalen, char **retbuf) {
 	printf("%s...\n",__func__);

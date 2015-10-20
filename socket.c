@@ -9,9 +9,13 @@
 #include <sys/types.h>
 #include <assert.h>
 
-#include "RtCSP.h"
-#include "socket.h"
-#include "loop_event.h"
+#ifdef HAVE_RTCSP
+	#include "RtCSP.h"
+	#include "socket.h"
+	#include "loop_event.h"
+#else
+	#include "bench.h"
+#endif
 
 int recv_data_len(conn_t *ptr)
 {
@@ -132,6 +136,7 @@ int socket_send(conn_t *ptr,const char *data,int data_len)
 
 void socket_close(conn_t *ptr)
 {
+#ifdef HAVE_RTCSP
 	char buf[1];
 	buf[0] = '\0';
 
@@ -152,4 +157,18 @@ void socket_close(conn_t *ptr)
 	if(buf[0]) {
 		write(ptr->thread->write_fd, buf, 1);
 	}
+#else
+	if(ptr->event.ev_base) {
+		event_del(&ptr->event);
+	}
+
+	shutdown(ptr->sockfd,SHUT_RDWR);
+	close(ptr->sockfd);
+	if(ptr->rbuf) {
+		free(ptr->rbuf);
+		ptr->rbuf = NULL;
+	}
+	ptr->rbytes = 0;
+	ptr->rsize = 0;
+#endif
 }

@@ -11,16 +11,6 @@
 #include "api.h"
 
 #ifdef DEBUG
-	#define INIT_RUNTIME() double runtime=microtime(),tmpruntime
-	#define INFO_RUNTIME(info) tmpruntime=microtime();printf("[ " info " ] %20s: %.3fs\n", __func__, tmpruntime-runtime);runtime=tmpruntime
-	#define rprintf(...) printf(__VA_ARGS__)
-#else
-	#define INIT_RUNTIME()
-	#define INFO_RUNTIME(info)
-	#define rprintf(...)
-#endif
-
-#ifdef DEBUG
 #define dprintf(...) fprintf(stdout,__VA_ARGS__)
 #define conn_info(ptr) _conn_info_ex(stdout,ptr,"[ conn_info ] ")
 #else

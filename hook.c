@@ -1,6 +1,5 @@
 #include "RtCSP.h"
 #include "conn.h"
-#include "hook.h"
 #include "serialize.h"
 
 GHashTable *ht_conn_recvs = NULL;

@@ -117,6 +117,7 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 	extmodules="$extmodules\&$1_module"
 	test "$extincludes" && extincludes="$extincludes\n"
 	extincludes="$extincludes#include \"modules/$1/mod_$1.h\""
+	extheaders="$extheaders modules/$1/mod_$1.h"
 
 	files=""
 	for file in $2;do files="$files modules/$1/$file";done
@@ -127,7 +128,7 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 
 		cat >> Makefile.am <<EOF
 libmod_$1_la_SOURCES = $files
-libmod_$1_la_CFLAGS = -w $4
+libmod_$1_la_CFLAGS = -w -DHAVE_RTCSP $4
 libmod_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -136,7 +137,7 @@ EOF
 
 		cat >> Makefile.am <<EOF
 libmod_$1_a_SOURCES = $files
-libmod_$1_a_CFLAGS = -w $4
+libmod_$1_a_CFLAGS = -w -DHAVE_RTCSP $4
 EOF
 	fi
 ])
@@ -158,7 +159,8 @@ AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
 	test "$extbenchmodules" && extbenchmodules="$extbenchmodules,"
 	extbenchmodules="$extbenchmodules\&$1_module"
 	test "$extbenchincludes" && extbenchincludes="$extbenchincludes\n"
-	extbenchincludes="$extbenchincludes#include \"modules/$1/mod_bench.h\""
+	extbenchincludes="$extbenchincludes#include \"modules/$1/mod_bench_$1.h\""
+	extheaders="$extheaders modules/$1/mod_bench_$1.h"
 
 	files=""
 	for file in $2;do files="$files modules/$1/$file";done
@@ -167,10 +169,9 @@ AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
 		extdynamics="$extdynamics libbench_$1.la"
 		extbenchlibadd="$extbenchlibadd libbench_$1.la"
 		
-
 		cat >> Makefile.am <<EOF
 libbench_$1_la_SOURCES = $files
-libbench_$1_la_CFLAGS = -w $4
+libbench_$1_la_CFLAGS = -w -DHAVE_BENCH $4
 libbench_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -179,7 +180,7 @@ EOF
 
 		cat >> Makefile.am <<EOF
 libbench_$1_a_SOURCES = $files
-libbench_$1_a_CFLAGS = -w $4
+libbench_$1_a_CFLAGS = -w -DHAVE_BENCH $4
 EOF
 	fi
 ])
@@ -188,6 +189,6 @@ AC_DEFUN([RTCSP_MAKE_MODULE],[
 	cat hook_internal.c.in | sed -e "s'@extincludes@'$extincludes'" -e "s'@extnames@'$extnames'" -e "s'@extmodules@'$extmodules'" -e "s'@extlength@'$extsize'" > hook_internal.c
 	cat bench_internal.c.in | sed -e "s'@extbenchincludes@'$extbenchincludes'" -e "s'@extbenchnames@'$extbenchnames'" -e "s'@extbenchmodules@'$extbenchmodules'" -e "s'@extbenchlength@'$extbenchsize'" > bench_internal.c
 
-	sed -e "s'@extldadd@'$extldadd'" -e "s'@extbenchldadd@'$extbenchldadd'" -e "s'@extlibadd@'$extlibadd'" -e "s'@extbenchlibadd@'$extbenchlibadd'" -e "s'@extstatics@'$extstatics'" -e "s'@extdynamics@'$extdynamics'" -i Makefile.am
+	sed -e "s'@extheaders@'$extheaders'" -e "s'@extldadd@'$extldadd'" -e "s'@extbenchldadd@'$extbenchldadd'" -e "s'@extlibadd@'$extlibadd'" -e "s'@extbenchlibadd@'$extbenchlibadd'" -e "s'@extstatics@'$extstatics'" -e "s'@extdynamics@'$extdynamics'" -i Makefile.am
 	automake --add-missing --foreign 1>&2 2> /dev/null
 ])
