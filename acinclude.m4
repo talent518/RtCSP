@@ -128,7 +128,7 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 		cat >> Makefile.am <<EOF
 libmod_$1_la_SOURCES = $files
 libmod_$1_la_CFLAGS = -w $4
-libmod_$1_la_LDFLAGS = $5
+libmod_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
 		extstatics="$extstatics libmod_$1.a"
@@ -167,10 +167,11 @@ AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
 		extdynamics="$extdynamics libbench_$1.la"
 		extbenchlibadd="$extbenchlibadd libbench_$1.la"
 		
+
 		cat >> Makefile.am <<EOF
 libbench_$1_la_SOURCES = $files
 libbench_$1_la_CFLAGS = -w $4
-libbench_$1_la_LDFLAGS = $5
+libbench_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
 		extstatics="$extstatics libbench_$1.a"
