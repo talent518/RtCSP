@@ -53,7 +53,7 @@ serialize_format_t *find_serialize_format(serialize_object_t *format,const char 
 	return g_hash_table_lookup(format->ht, key);
 }
 
-length_t _serialize_parse_force(const char *bbuffer, char *buffer, length_t buflen) {
+length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile length_t buflen) {
 	char *bpos = buffer,*ptr = NULL;
 	length_t n = 0, tmplen;
 	char be[] = "(){}[]";
@@ -167,7 +167,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, length_t bufl
 	return buffer - bpos;
 }
 
-length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbuffer, char *buffer, length_t buflen, length_t *forcelen) {
+length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbuffer, char *buffer, length_t buflen, volatile length_t *forcelen) {
 	char *bpos = buffer, *pos=buffer;
 	char chr=';';
 	length_t tmplen, vallen=0;
@@ -432,7 +432,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 	return buffer-bpos;
 }
 
-int _serialize_parse_object(void *obj, serialize_object_t *format, const char *bbuffer, char *buffer, length_t buflen, length_t *forcelen) {
+int _serialize_parse_object(void *obj, serialize_object_t *format, const char *bbuffer, char *buffer, length_t buflen, volatile length_t *forcelen) {
 	serialize_format_t *fmt;
 	char key[101], *pos;
 	const char *bpos=buffer, *epos;

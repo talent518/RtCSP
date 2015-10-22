@@ -93,7 +93,7 @@ void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 		return;
 	}
 
-	buflen = call(ptr, data+tmplen, data_len-tmplen, (volatile char **)&buf);
+	buflen = call(ptr, data+tmplen, data_len-tmplen, &buf);
 	if(buflen>0) {
 		char *buf2 = (char *)malloc(buflen+tmplen+1);
 

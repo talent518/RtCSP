@@ -41,8 +41,8 @@ void send_request(conn_t *ptr) {
 		hkey.keylen = send_recv->keylen;
 
 		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
-
 		buflen = serialize_string(&hkey, &hformat, (volatile char **)&buffer);
+		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, buffer);
 		if(buflen > 0) {
 			buffer = (char*)realloc((void*)buffer, buflen+data_len+1);
 
@@ -51,7 +51,7 @@ void send_request(conn_t *ptr) {
 
 			socket_send(ptr, (char*)buffer, buflen+data_len);
 		}
-		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
+		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, buffer);
 
 		if(buffer) {
 			free((void*)buffer);
@@ -62,7 +62,6 @@ void send_request(conn_t *ptr) {
 	if(data) {
 		free((void*)data);
 	}
-	printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
 }
 
 static void read_handler(int sock, short event, void *arg)
