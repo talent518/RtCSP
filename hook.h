@@ -1,10 +1,12 @@
 #ifdef _HOOK_H
 #define _HOOK_H
 
+#include <stdbool.h>
+
 #include "conn.h"
 #include "loop_event.h"
 
-int hook_conn_accept(conn_t *ptr);
+bool hook_conn_accept(conn_t *ptr);
 void hook_conn_close(conn_t *ptr);
 void hook_conn_recv(conn_t *ptr,const char *data, int data_len);
 void hook_conn_denied(conn_t *ptr);

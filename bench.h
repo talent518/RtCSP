@@ -2,28 +2,33 @@
 #define _BENCH_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <event.h>
 
 #define rtcsp_maxrecvs bench_maxrecvs
 
 #ifdef DEBUG
-#define dprintf(...) fprintf(stdout,__VA_ARGS__)
-#define conn_info(ptr) _conn_info_ex(stdout,ptr,"[ conn_info ] ")
+	#define dprintf(...) fprintf(stdout,__VA_ARGS__)
 #else
-#define dprintf(...)
-#define conn_info(ptr)
+	#define dprintf(...)
 #endif
 
-#define _conn_info(ptr) _conn_info_ex(stdout,ptr,"[ _conn_info ] ")
+#ifdef DEBUG_INFO
+	#define _conn_info_ex(fd,ptr,append) fprintf(fd,append" in %20s on line (%3d): thread(%3d) sockfd(%5d)!\n", __func__, __LINE__, ptr->tid, ptr->sockfd)
+#else
+	#define _conn_info_ex(fd,ptr,append)
+#endif
 
-#define _conn_info_ex(fd,ptr,append) fprintf(fd,append" in %20s on line (%3d): index(%5d), sockfd(%5d), host(%15s), port(%5d)!\n", __func__, __LINE__, ptr->index, ptr->sockfd, ptr->host, ptr->port)
+#define conn_info(ptr) _conn_info_ex(stdout,ptr,"[ conn_info ] ")
 #define conn_info_ex(ptr,append) _conn_info_ex(stderr,ptr,append)
 
 typedef struct _conn_t{
+	unsigned int tid;
+
 	int index;
 	
 	int sockfd;
-	char host[15];
+	char host[16];
 	int port;
 
 	char *rbuf;
@@ -33,27 +38,30 @@ typedef struct _conn_t{
 	struct event event;
 } conn_t;
 
-typedef int (*conn_recv_func_t)(conn_t *, const char *, int, char **);
+typedef int (*conn_send_func_t)(conn_t *, volatile char **);
+typedef bool (*conn_recv_func_t)(conn_t *, const char *, int);
 
 typedef struct
 {
 	char *key;
-	conn_recv_func_t call;
-} conn_recv_t;
+	unsigned int keylen;
+	conn_send_func_t send_call;
+	conn_recv_func_t recv_call;
+} conn_send_recv_t;
 
 typedef struct
 {
-	conn_recv_t *recvs;
-	size_t recvs_len;
+	conn_send_recv_t *recvs;
+	unsigned int recvs_len;
 } bench_module_t;
 
-extern char bench_host[100];
+extern char bench_host[16];
 extern unsigned int bench_port;
 extern unsigned int bench_nthreads;
 extern unsigned int bench_requests;
 extern int bench_maxrecvs;
 
-extern int bench_length;
+extern unsigned int bench_length;
 extern char *bench_names[];
 extern bench_module_t *bench_modules[];
 

@@ -1,9 +1,11 @@
+#include <stdio.h>
+#include <stdbool.h>
 #include "mod_demo.h"
 
-int demo_conn_accept(conn_t *ptr) {
+bool demo_conn_accept(conn_t *ptr) {
 	conn_info_ex(ptr,"accept connection");
 
-	return 0;
+	return true;
 }
 
 void demo_conn_close(conn_t *ptr) {
@@ -29,16 +31,16 @@ void demo_stop() {
 	printf("%s...\n",__func__);
 }
 
-int demo_user(conn_t *ptr, const char *data, int datalen, char **retbuf) {
-	conn_info(ptr);
+int demo_user(conn_t *ptr, const char *data, int datalen, volatile char **retbuf) {
+	*retbuf = malloc(1024);
 
-	return 0;
+	return sprintf(*retbuf, "%s...(%d: %s)", __func__, datalen, data);
 }
 
-int demo_profile(conn_t *ptr, const char *data, int datalen, char **retbuf) {
-	conn_info(ptr);
+int demo_profile(conn_t *ptr, const char *data, int datalen, volatile char **retbuf) {
+	*retbuf = malloc(1024);
 
-	return 0;
+	return sprintf(*retbuf, "%s...(%d: %s)", __func__, datalen, data);
 }
 
 conn_recv_t demo_recvs[]={

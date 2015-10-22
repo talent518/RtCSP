@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-	volatile int exit_status = 0;
+	int exit_status = 0;
 	int c,i,j;
 	/* temporary locals */
 	char *serv_opt=NULL;

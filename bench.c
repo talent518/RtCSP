@@ -4,14 +4,16 @@
 
 #include "bench.h"
 
-char bench_host[100] = "127.0.0.1";
+char bench_host[16] = "127.0.0.1";
 unsigned int bench_port = 8083;
 unsigned int bench_nthreads = 10;
 unsigned int bench_requests = 20;
 int bench_maxrecvs = 2*1024*1024;
 
 int main(int argc, char *argv[]) {
-	int i,j;
+	unsigned int i,j;
+
+	loop_event();
 
 	for(i=0;i<bench_length;i++) {
 		printf("%s: ",bench_names[i]);

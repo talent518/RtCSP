@@ -6,8 +6,8 @@ GHashTable *ht_conn_recvs = NULL;
 
 typedef struct
 {
-	char key[101];
-	size_t keylen;
+	char *key;
+	unsigned int keylen;
 } srl_hash_t;
 
 serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse receive hook key");
@@ -28,16 +28,14 @@ void hook_thread_destory(worker_thread_t *thread) {
 
 void hook_start() {
 	int i,j;
-	char *key;
 	conn_recv_t *ptr;
 	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
 	for(i=0;i<rtcsp_length;i++) {
 		for(j=0;j<rtcsp_modules[i]->conn_recv_len;j++) {
 			ptr = &(rtcsp_modules[i]->conn_recvs[j]);
 			if(g_hash_table_lookup(ht_conn_recvs,ptr->key)) {
-				printf("Connection receive hook (%s->%s) is exists.\n", rtcsp_names[i], ptr->key);
+				dprintf("Connection receive hook (%s->%s) is exists.\n", rtcsp_names[i], ptr->key);
 			} else {
-				dprintf("Connection receive hook hashtable index (%s->%s).\n", rtcsp_names[i], ptr->key);
 				g_hash_table_insert(ht_conn_recvs,ptr->key,ptr->call);
 			}
 		}
@@ -57,13 +55,15 @@ void hook_stop() {
 	g_hash_table_destroy(ht_conn_recvs);
 }
 
-int hook_conn_accept(conn_t *ptr) {
-	int i,ret;
+bool hook_conn_accept(conn_t *ptr) {
+	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		ret+=rtcsp_modules[i]->conn_accept(ptr);
+		if(rtcsp_modules[i]->conn_accept && !rtcsp_modules[i]->conn_accept(ptr)) {
+			return false;
+		}
 	}
 
-	return ret;
+	return true;
 }
 
 void hook_conn_close(conn_t *ptr) {
@@ -77,7 +77,7 @@ void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 	volatile char *buf = NULL;
 	int buflen;
 	conn_recv_func_t call;
-	size_t tmplen;
+	unsigned int tmplen;
 	srl_hash_t hkey = {NULL, 0};
 	
 	tmplen = serialize_parse((void*)&hkey, &hformat, data, data_len);
@@ -86,9 +86,6 @@ void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 		return;
 	}
 
-	data += tmplen;
-	data_len -= tmplen;
-
 	call = g_hash_table_lookup(ht_conn_recvs,hkey.key);
 	if(!call) {
 		printf("Connection receive hook (%s) not exists.\n", hkey.key);
@@ -96,9 +93,16 @@ void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 		return;
 	}
 
-	buflen = call(ptr,data,data_len,&buf);
+	buflen = call(ptr, data+tmplen, data_len-tmplen, (volatile char **)&buf);
 	if(buflen>0) {
-		socket_send(ptr,buf,buflen);
+		char *buf2 = (char *)malloc(buflen+tmplen+1);
+
+		strncpy(buf2, data, tmplen);
+		strncpy(buf2+tmplen, buf, buflen);
+
+		socket_send(ptr, buf2, buflen+tmplen);
+
+		free(buf2);
 	} else {
 		printf("receive hook (%s) not return message.\n", hkey.key);
 		free(hkey.key);

@@ -134,6 +134,52 @@ int socket_send(conn_t *ptr,const char *data,int data_len)
 	return ret;
 }
 
+conn_t *socket_connect(const char *host, short int port){
+	struct sockaddr_in sin;
+	int sockfd;
+	int ret;
+
+	sockfd=socket(AF_INET,SOCK_STREAM,0);
+	if(sockfd<0){
+		return 0;
+	}
+	int opt=1;
+	setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(int));//
+
+	int send_recv_timeout=2000;
+	setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,&send_recv_timeout,sizeof(int));//发送超时
+	setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&send_recv_timeout,sizeof(int));//接收超时
+
+	typedef struct {
+		u_short l_onoff;
+		u_short l_linger;
+	} linger;
+	linger m_sLinger;
+	m_sLinger.l_onoff=1;//(在closesocket()调用,但是还有数据没发送完毕的时候容许逗留)
+	// 如果m_sLinger.l_onoff=0;则功能和2.)作用相同;
+	m_sLinger.l_linger=5;//(容许逗留的时间为5秒)
+	setsockopt(sockfd,SOL_SOCKET,SO_LINGER,(const char*)&m_sLinger,sizeof(linger));
+
+	int send_recv_buffers=0;
+	setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,(char *)&send_recv_buffers,sizeof(int));//发送缓冲区大小
+	setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(char *)&send_recv_buffers,sizeof(int));//接收缓冲区大小
+
+	bzero(&sin,sizeof(sin));
+	sin.sin_family=AF_INET;
+	sin.sin_addr.s_addr=inet_addr(host);
+	sin.sin_port=htons(port);
+
+	conn_t *ptr = NULL;
+	if(connect(sockfd,(struct sockaddr *)&sin,sizeof(sin)) == 0) {
+		ptr = (conn_t*)malloc(sizeof(conn_t));
+		memset(ptr, 0, sizeof(conn_t));
+		ptr->sockfd = sockfd;
+		strcpy(ptr->host, host);
+		ptr->port = port;
+	}
+	return ptr;
+}
+
 void socket_close(conn_t *ptr)
 {
 #ifdef HAVE_RTCSP

@@ -304,10 +304,7 @@ static void listen_handler(const int fd, const short which, void *arg)
 
 		ptr->thread = thread;
 
-		ret=hook_conn_accept(ptr);
-		if(ret) {
-			dprintf("notify thread %d\n", thread->id);
-
+		if(hook_conn_accept(ptr)) {
 			queue_push(thread->accept_queue, ptr);
 
 			conn_info(ptr);

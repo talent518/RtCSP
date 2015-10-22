@@ -26,12 +26,24 @@
 #define SRL_TYPE_HASHTABLE				'h'
 #define SRL_TYPE_HASHTABLE2				'H'
 
-#define _SFT_ARG8(type,object,property,length,size,memsize,format,isint,func,help) {#property, strlen(#property), type, isint, offsetof(object,property), help, length, size, memsize, format, func}
+#define _SFT_ARG8(type,object,property,length,size,memsize,format,isint,func,help) {#property, sizeof(#property)-1, type, isint, offsetof(object,property), help, length, size, memsize, format, func}
 #define _SFT_ARG7(type,object,property,length,size,memsize,format,help) _SFT_ARG8(type, object, property, length, size, memsize, format, false, NULL, help)
 #define _SFT_ARG6(type,object,property,length,size,help) _SFT_ARG7(type, object, property, offsetof(object, length), size, 0, NULL, help)
 #define _SFT_ARG4(type,object,property,help) _SFT_ARG7(type, object, property, 0, 0, 0, NULL, help)
 
 #define SFT_END {NULL,0}
+
+typedef bool bool_t;
+typedef char char_t;
+typedef int int_t;
+typedef unsigned int uint_t;
+typedef long int long_t;
+typedef unsigned long int ulong_t;
+typedef float float_t;
+typedef double double_t;
+typedef long double longdouble_t;
+
+typedef unsigned int length_t;
 
 #define SFT_BOOL(object,property,help) _SFT_ARG4(SRL_TYPE_BOOLEAN, object, property, help)
 #define SFT_CHAR(object,property,help) _SFT_ARG4(SRL_TYPE_CHAR, object, property, help)
@@ -64,25 +76,25 @@ typedef struct _serialize_object_t serialize_object_t;
 
 struct _serialize_object_t {
 	serialize_format_t *formats;
-	size_t nsize;
+	length_t nsize;
 	GHashTable *ht;
 };
 
 struct _serialize_format_t {
 	char *key;
-	size_t keylen;
+	length_t keylen;
 
 	char type;
 	bool isint;
 
-	size_t offset;
+	length_t offset;
 
 	char *help;
 
-	size_t offsetlen;
-	size_t vallen;
+	length_t offsetlen;
+	length_t vallen;
 
-	size_t memsize;
+	length_t memsize;
 	union{
 		serialize_format_t *format;
 		serialize_object_t *object;
@@ -94,10 +106,13 @@ struct _serialize_format_t {
 void serialize_object_init(serialize_object_t *format);
 void serialize_object_destory(serialize_object_t *format);
 
-size_t serialize_parse(void *obj, serialize_format_t *format, const char *buffer, size_t buflen);
-size_t serialize_parse_object(void *obj, serialize_object_t *format, const char *buffer, size_t buflen);
+unsigned int serialize_parse(void *obj, serialize_format_t *format, const char *buffer, length_t buflen);
+length_t serialize_parse_object(void *obj, serialize_object_t *format, const char *buffer, length_t buflen);
 
-size_t serialize_string(void *obj, serialize_format_t *format, char **buffer);
-size_t serialize_string_object(void *obj, serialize_object_t *format, char **buffer);
+length_t serialize_string(void *obj, serialize_format_t *format, volatile char **buffer);
+length_t serialize_string_object(void *obj, serialize_object_t *format, volatile char **buffer);
+
+void serialize_string_ex(GString *gstr, void *obj, serialize_format_t *format);
+void serialize_string_object_ex(GString *gstr, void *obj, serialize_object_t *format);
 
 #endif

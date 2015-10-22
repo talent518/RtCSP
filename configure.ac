@@ -32,9 +32,16 @@ AC_TYPE_SIZE_T
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_STRTOD
-AC_CHECK_FUNCS([bzero getcwd gettimeofday memchr memset pow socket strchr strdup strerror strrchr strstr strtol strtoul])
+AC_CHECK_FUNCS([bzero getcwd gettimeofday memchr memset socket strchr strdup strerror strrchr strstr strtol strtoul])
 
 sinclude(acinclude.m4)
+
+CFLAGS="$CFLAGS -w"
+
+AC_ARG_ENABLE(debug, [  --enable-debug turn on debug], CFLAGS="-g -O0 -Wall -DDEBUG")
+AC_ARG_ENABLE(debuginfo, [  --enable-debuginfo turn on debug conn info], CFLAGS="-g -O0 -Wall -DDEBUG_INFO")
+AC_ARG_ENABLE(debugfull, [  --enable-debugfull turn on debug full], CFLAGS="-g -O0 -DDEBUG -Wall -DDEBUG_INFO")
+AC_ARG_ENABLE(runtime, [  --enable-runtime turn on print run time], CFLAGS="$CFLAGS -DDEBUG_RUN_TIME")
 
 # libevent is required
 AC_ARG_WITH(libevent, [  --with-libevent=DIR         where to find the libevent library, default /usr], , [with_libevent=/usr])
@@ -47,11 +54,10 @@ RTCSP_ADD_INCLUDE($with_glib/include/glib-2.0)
 RTCSP_ADD_INCLUDE($with_glib/lib/glib-2.0/include)
 RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
 
-AC_CHECK_LIB([m], log,,[AC_MSG_ERROR([math support requested, but not found])])
+AC_CHECK_LIB([m], pow,,[AC_MSG_ERROR([math support requested, but not found])])
 AC_CHECK_LIB([pthread], pthread_create,,[AC_MSG_ERROR([libpthread support requested, but not found])])
 AC_CHECK_LIB([event], event_base_loop,,[AC_MSG_ERROR([libevent support requested, but not found])])
 AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([glib-2.0 support requested, but not found])])
-AC_ARG_ENABLE(debug, [  --enable-debug turn on debug], CFLAGS="$CFLAGS -O0 -DDEBUG")
 
 \cp Makefile.am.in Makefile.am
 
@@ -59,6 +65,9 @@ no_undef=
 if test "$build_os" = "cygwin"; then
 	no_undef=-no-undefined
 fi
+
+enable_modules=yes
+AC_ARG_ENABLE(modules, [  --enable-modules turn on modules \[default=yes\]], enable_modules=$enableval)
 
 sinclude(modules/Makefile.m4)
 

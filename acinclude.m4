@@ -128,7 +128,7 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 
 		cat >> Makefile.am <<EOF
 libmod_$1_la_SOURCES = $files
-libmod_$1_la_CFLAGS = -w -DHAVE_RTCSP $4
+libmod_$1_la_CFLAGS = -DHAVE_RTCSP $4
 libmod_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -137,7 +137,7 @@ EOF
 
 		cat >> Makefile.am <<EOF
 libmod_$1_a_SOURCES = $files
-libmod_$1_a_CFLAGS = -w -DHAVE_RTCSP $4
+libmod_$1_a_CFLAGS = -DHAVE_RTCSP $4
 EOF
 	fi
 ])
@@ -171,7 +171,7 @@ AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
 		
 		cat >> Makefile.am <<EOF
 libbench_$1_la_SOURCES = $files
-libbench_$1_la_CFLAGS = -w -DHAVE_BENCH $4
+libbench_$1_la_CFLAGS = -DHAVE_BENCH $4
 libbench_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -180,7 +180,7 @@ EOF
 
 		cat >> Makefile.am <<EOF
 libbench_$1_a_SOURCES = $files
-libbench_$1_a_CFLAGS = -w -DHAVE_BENCH $4
+libbench_$1_a_CFLAGS = -DHAVE_BENCH $4
 EOF
 	fi
 ])

@@ -1,13 +1,13 @@
 bin_PROGRAMS = rtcspd bench
 
 rtcspd_SOURCES = RtCSP.c server.c loop_event.c hook.c socket.c conn.c serialize.c queue.c api.c getopt.c hook_internal.c
-rtcspd_CFLAGS = -w -DHAVE_RTCSP
+rtcspd_CFLAGS = -DHAVE_RTCSP
 rtcspd_LDADD = @extldadd@ @extlibadd@
 rtcspd_LDFLAGS = 
 
-bench_SOURCES = bench.c bench_internal.c socket.c
+bench_SOURCES = bench.c bench_internal.c socket.c bench_event.c serialize.c
 bench_LDADD = @extbenchldadd@ @extbenchlibadd@
-bench_CFLAGS = -w -DHAVE_BENCH
+bench_CFLAGS = -DHAVE_BENCH
 bench_LDFLAGS = 
 
 noinst_LIBRARIES = @extstatics@

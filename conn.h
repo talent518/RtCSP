@@ -14,7 +14,7 @@ typedef struct _conn_t{
 	int index;
 	
 	int sockfd;
-	char host[15];
+	char host[16];
 	int port;
 
 	bool refable;

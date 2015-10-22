@@ -2,9 +2,16 @@
 
 ./cleanauto.sh
 
-for m4 in $(find modules -name "Makefile.m4")
+for mod in $(ls modules)
 do
-	echo "sinclude($m4)" >> modules/Makefile.m4
+	cat >> modules/Makefile.m4 <<EOF
+enable_mod_${mod}=\$enable_modules
+AC_ARG_ENABLE($mod, [  --enable-$mod turn on $mod], \$enable_mod_${mod}=\$enableval)
+if test "\$enable_mod_${mod}" = "yes"; then
+	sinclude(modules/$mod/Makefile.m4)
+fi
+
+EOF
 done
 
 aclocal && \
@@ -13,6 +20,9 @@ autoconf && \
 libtoolize --automake --copy --debug --force 2> /dev/null > /dev/null && \
 automake --add-missing --foreign 2> /dev/null
 
-./configure --with-libevent=/opt/ssp
+if test -d "/opt/ssp"; then
+	./configure --with-libevent=/opt/ssp $*
+	exit $?
+fi
 
-exit $?
+exit 0
