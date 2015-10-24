@@ -109,8 +109,8 @@ void serialize_object_destory(serialize_object_t *format);
 unsigned int serialize_parse(void *obj, serialize_format_t *format, const char *buffer, length_t buflen);
 length_t serialize_parse_object(void *obj, serialize_object_t *format, const char *buffer, length_t buflen);
 
-length_t serialize_string(void *obj, serialize_format_t *format, volatile char **buffer);
-length_t serialize_string_object(void *obj, serialize_object_t *format, volatile char **buffer);
+length_t serialize_string(void *obj, serialize_format_t *format, char **buffer);
+length_t serialize_string_object(void *obj, serialize_object_t *format, char **buffer);
 
 void serialize_string_ex(GString *gstr, void *obj, serialize_format_t *format);
 void serialize_string_object_ex(GString *gstr, void *obj, serialize_object_t *format);

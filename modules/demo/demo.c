@@ -31,16 +31,16 @@ void demo_stop() {
 	printf("%s...\n",__func__);
 }
 
-int demo_user(conn_t *ptr, const char *data, int datalen, volatile char **retbuf) {
-	*retbuf = malloc(1024);
+bool demo_user(conn_t *ptr, const char *data, int datalen, GString *gstr) {
+	g_string_append_printf(gstr, "%s...(%d: %s)", __func__, datalen, data);
 
-	return sprintf(*retbuf, "%s...(%d: %s)", __func__, datalen, data);
+	return true;
 }
 
-int demo_profile(conn_t *ptr, const char *data, int datalen, volatile char **retbuf) {
-	*retbuf = malloc(1024);
+bool demo_profile(conn_t *ptr, const char *data, int datalen, GString *gstr) {
+	g_string_append_printf(gstr, "%s...(%d: %s)", __func__, datalen, data);
 
-	return sprintf(*retbuf, "%s...(%d: %s)", __func__, datalen, data);
+	return true;
 }
 
 conn_recv_t demo_recvs[]={

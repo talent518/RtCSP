@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <event.h>
+#include <glib.h>
 
 #define rtcsp_maxrecvs bench_maxrecvs
 
@@ -38,7 +39,7 @@ typedef struct _conn_t{
 	struct event event;
 } conn_t;
 
-typedef int (*conn_send_func_t)(conn_t *, volatile char **);
+typedef bool (*conn_send_func_t)(conn_t *, GString *);
 typedef bool (*conn_recv_func_t)(conn_t *, const char *, int);
 
 typedef struct
@@ -64,11 +65,5 @@ extern int bench_maxrecvs;
 extern unsigned int bench_length;
 extern char *bench_names[];
 extern bench_module_t *bench_modules[];
-
-int recv_data_len(conn_t *ptr);
-int socket_recv(conn_t *ptr,char **data,int *data_len);
-int socket_send(conn_t *ptr,const char *data,int data_len);
-
-void socket_close(conn_t *ptr);
 
 #endif

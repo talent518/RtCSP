@@ -12,7 +12,7 @@
 typedef struct
 {
 	char *key;
-	unsigned int keylen;
+	length_t keylen;
 } srl_hash_t;
 
 serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse receive hook key");
@@ -27,47 +27,21 @@ static pthread_cond_t init_cond;
 static void signal_handler(const int fd, short event, void *arg);
 
 void send_request(conn_t *ptr) {
-	srl_hash_t hkey = {NULL, 0};
-	volatile char *buffer = NULL;
-	unsigned int buflen;
-	volatile char *data = NULL;
-	int data_len;
+	GString gstr={NULL,0,0};
 
-	printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
-	data_len = send_recv->send_call(ptr, (volatile char **)&data);
-	printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
-	if(data_len>0 && data) {
-		hkey.key = send_recv->key;
-		hkey.keylen = send_recv->keylen;
-
-		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
-		buflen = serialize_string(&hkey, &hformat, (volatile char **)&buffer);
-		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, buffer);
-		if(buflen > 0) {
-			buffer = (char*)realloc((void*)buffer, buflen+data_len+1);
-
-			memcpy((void*)(buffer+buflen), (void*)data, data_len);
-			memset((void*)(buffer+buflen+data_len), 0, 1);
-
-			socket_send(ptr, (char*)buffer, buflen+data_len);
-		}
-		printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, buffer);
-
-		if(buffer) {
-			free((void*)buffer);
-		}
+	serialize_string_ex(&gstr, send_recv, &hformat);
+	if(send_recv->send_call(ptr, &gstr)) {
+		socket_send(ptr, gstr.str, gstr.len);
 	}
-	printf("%s(%d:%d)(%s)\n", __func__, __LINE__, ptr->tid, data);
 
-	if(data) {
-		free((void*)data);
-	}
+	free(gstr.str);
 }
 
 static void read_handler(int sock, short event, void *arg)
 {
-	int data_len=0,ret;
-	char *data=NULL;
+	volatile int data_len=0;
+	volatile char *data=NULL;
+	int ret;
 	conn_t *ptr = (conn_t*) arg;
 	worker_thread_t *me = &worker_threads[ptr->tid];
 
@@ -86,13 +60,13 @@ static void read_handler(int sock, short event, void *arg)
 		
 		tmplen = serialize_parse((void*)&hkey, &hformat, data, data_len);
 		if(!tmplen) {
-			printf("Parse receive hook key failed(%s).\n", data);
+			fprintf(stderr, "Parse receive hook key failed(%s).\n", data);
 
 			goto sendnext;
 		}
 
 		if(strcmp(send_recv->key, hkey.key)) {
-			printf("receive key not equal(%s != %s).\n", send_recv->key, hkey.key);
+			fprintf(stderr, "receive key not equal(%s != %s).\n", send_recv->key, hkey.key);
 
 			goto sendnext;
 		}
@@ -101,7 +75,7 @@ static void read_handler(int sock, short event, void *arg)
 		if(ret>0) {
 			// TODO recv OK
 		} else {
-			printf("receive data error(%s)\n", data+tmplen);
+			fprintf(stderr, "receive data error(%s)\n", data+tmplen);
 		}
 sendnext:
 		if(hkey.key) {
@@ -171,7 +145,12 @@ static void *worker_thread_handler(void *arg)
 		free(me->conns[i]);
 		me->conns[i] = NULL;
 	}
+	free(me->conns);
 	dprintf("thread %d socket closed\n", me->id);
+
+	event_del(&me->event);
+	event_base_dispatch(me->base);
+	event_base_free(me->base);
 
 	dprintf("thread %d exited\n", me->id);
     pthread_mutex_lock(&init_lock);
@@ -384,4 +363,11 @@ void loop_event() {
 	write(main_thread.write_fd, chr, 1);
 
 	event_base_loop(main_thread.base, 0);
+
+	event_del(&main_thread.notify_ev);
+	event_del(&main_thread.signal_int);
+	event_base_dispatch(main_thread.base);
+	event_base_free(main_thread.base);
+
+	free(worker_threads);
 }

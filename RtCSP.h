@@ -30,7 +30,7 @@ typedef void (*server_func_t)(void);
 typedef void (*thread_func_t)(worker_thread_t*);
 typedef void (*conn_func_t)(conn_t*);
 typedef bool (*conn_accept_func_t)(conn_t*);
-typedef int (*conn_recv_func_t)(conn_t*,const char *, int, volatile char **);
+typedef bool (*conn_recv_func_t)(conn_t*, const char *, int, GString *);
 
 typedef struct
 {

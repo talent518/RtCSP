@@ -4,12 +4,6 @@
 #include <strings.h>
 #include <assert.h>
 
-#ifdef DEBUG
-	#define dprintf(...) fprintf(stdout,__VA_ARGS__)
-#else
-	#define dprintf(...)
-#endif
-
 #include "serialize.h"
 
 typedef struct
@@ -77,7 +71,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 		case SRL_TYPE_LONG_DOUBLE:
 			ptr = memchr(buffer, ';', buflen);
 			if(!ptr) {
-				dprintf("error(force): In %u position after not found character for \";\".\n", (length_t)(buffer-bbuffer));
+				fprintf(stderr, "error(force): In %u position after not found character for \";\".\n", (length_t)(buffer-bbuffer));
 				return 0;
 			}
 
@@ -89,7 +83,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 			length_t len = strtoul(buffer+2, &ptr, 10);
 
 			if(len+1 > buflen) {
-				dprintf("error(force): In %u position string length too much.\n", (length_t)(buffer-bbuffer+1));
+				fprintf(stderr, "error(force): In %u position string length too much.\n", (length_t)(buffer-bbuffer+1));
 				return 0;
 			}
 
@@ -99,7 +93,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 			buffer += len;
 
 			if( buflen < 1 || *buffer != ';') {
-				dprintf("error(force): In %u position not is character for \";\".\n", (length_t)(buffer-bbuffer));
+				fprintf(stderr, "error(force): In %u position not is character for \";\".\n", (length_t)(buffer-bbuffer));
 
 				return 0;
 			}
@@ -119,7 +113,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 		case SRL_TYPE_HASHTABLE:
 		case SRL_TYPE_HASHTABLE2:
 			if(!(ptr = memchr(buffer, be[n], buflen))) {
-				dprintf("error(force): In %u position after not found character for \"%c\".\n", (length_t)(buffer-bbuffer), be[n]);
+				fprintf(stderr, "error(force): In %u position after not found character for \"%c\".\n", (length_t)(buffer-bbuffer), be[n]);
 
 				return 0;
 			}
@@ -130,7 +124,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 			while(buflen>0 && *buffer != be[n+1]) {
 				tmplen = _serialize_parse_force(bbuffer, buffer, buflen);
 				if(!tmplen) {
-					dprintf("error(force): in %d postion invalid type character.\n", (length_t)(buffer-bbuffer));
+					fprintf(stderr, "error(force): in %d postion invalid type character.\n", (length_t)(buffer-bbuffer));
 					return 0;
 				}
 				buffer += tmplen;
@@ -144,7 +138,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 				}
 				tmplen = _serialize_parse_force(bbuffer, buffer, buflen);
 				if(!tmplen) {
-					dprintf("error(force): in %d postion invalid type character.\n", (length_t)(buffer-bbuffer));
+					fprintf(stderr, "error(force): in %d postion invalid type character.\n", (length_t)(buffer-bbuffer));
 					return 0;
 				}
 				buffer += tmplen;
@@ -152,7 +146,7 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 			}
 
 			if( buflen < 1 || *buffer != be[n+1]) {
-				dprintf("error(force): In %u position not is character for \"%c\".\n", (length_t)(buffer-bbuffer), be[n+1]);
+				fprintf(stderr, "error(force): In %u position not is character for \"%c\".\n", (length_t)(buffer-bbuffer), be[n+1]);
 
 				return 0;
 			}
@@ -186,7 +180,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 	buffer++;
 
 	if(*buffer != ':') {
-		dprintf("error: In %u position not is character for \":\".\n", (length_t)(buffer-bbuffer));
+		fprintf(stderr, "error: In %u position not is character for \":\".\n", (length_t)(buffer-bbuffer));
 		return 0;
 	}
 
@@ -267,7 +261,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 
 	pos = strchr(pos, chr);
 	if(!pos) {
-		dprintf("error: In %u position after character not is \"%c\".\n", (length_t)(buffer-bbuffer), chr);
+		fprintf(stderr, "error: In %u position after character not is \"%c\".\n", (length_t)(buffer-bbuffer), chr);
 		return 0;
 	}
 
@@ -279,7 +273,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		}
 
 		if(buflen-(buffer-bpos)<vallen) {
-			dprintf("error: In %u position before parse data format length is %d, the after character length than less.\n", (length_t)(buffer-bbuffer), vallen);
+			fprintf(stderr, "error: In %u position before parse data format length is %d, the after character length than less.\n", (length_t)(buffer-bbuffer), vallen);
 			return 0;
 		}
 
@@ -296,7 +290,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		switch(format->type) {
 			case SRL_TYPE_STRING: {
 				if(*((void **)arg)) {
-					dprintf("error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
+					fprintf(stderr, "error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
 					return 0;
 				}
 				*((char **)arg) = (char*)malloc(vallen+1);
@@ -308,7 +302,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 				*(pos+vallen) = '\0';
 				buffer+=tmplen;
 				if(*buffer != ';') {
-					dprintf("error: In %u position after character not is \";\".\n", (length_t)(buffer-bbuffer));
+					fprintf(stderr, "error: In %u position after character not is \";\".\n", (length_t)(buffer-bbuffer));
 					return 0;
 				}
 				buffer++;
@@ -316,7 +310,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 			}
 			case SRL_TYPE_ARRAY: {
 				if(*((void **)arg)) {
-					dprintf("error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
+					fprintf(stderr, "error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
 					return 0;
 				}
 				*((void **)arg) = malloc(format->memsize*vallen);
@@ -329,7 +323,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 					tmplen = _serialize_parse((void*)(pos + i*format->memsize), format->format, bbuffer, buffer, buflen, forcelen);
 
 					if(!tmplen) {
-						dprintf("error: %s\n", format->help);
+						fprintf(stderr, "error: %s\n", format->help);
 						return 0;
 					}
 
@@ -337,7 +331,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 					buflen -= tmplen;
 				}
 				if(*buffer != ']') {
-					dprintf("error: In %u position after character not is \"]\".\n", (length_t)(buffer-bbuffer));
+					fprintf(stderr, "error: In %u position after character not is \"]\".\n", (length_t)(buffer-bbuffer));
 					return 0;
 				}
 				buffer++;
@@ -349,7 +343,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		vallen = _serialize_parse_object(arg, format->object, bbuffer, buffer, buflen, forcelen);
 		
 		if(!vallen) {
-			dprintf("error: %s\n", format->help);
+			fprintf(stderr, "error: %s\n", format->help);
 			return 0;
 		}
 
@@ -357,7 +351,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		buflen -= vallen;
 		
 		if(*buffer != '}') {
-			dprintf("error: In %u position after character not is \"}\".\n", (length_t)(buffer-bbuffer));
+			fprintf(stderr, "error: In %u position after character not is \"}\".\n", (length_t)(buffer-bbuffer));
 			return 0;
 		}
 
@@ -367,7 +361,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		GHashTable *ht = (format->isint ? g_hash_table_new_full(g_int_hash, g_int_equal, (GDestroyNotify)free, format->func) : g_hash_table_new_full(g_str_hash, g_str_equal, (GDestroyNotify)free, format->func));
 
 		if(*((void **)arg)) {
-			dprintf("error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
+			fprintf(stderr, "error: Dynamic pointer properties cannot be duplicated(%s).", format->help);
 			return 0;
 		}
 		*((void **)arg) = ht;
@@ -384,7 +378,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 				tmplen = _serialize_parse((void*)&ikey, &iformat, bbuffer, buffer, buflen, forcelen);
 
 				if(!tmplen) {
-					dprintf("error: %s\n", iformat.help);
+					fprintf(stderr, "error: %s\n", iformat.help);
 					return 0;
 				}
 			} else {
@@ -394,7 +388,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 					if(hkey.key) {
 						free(hkey.key);
 					}
-					dprintf("error: %s\n", hformat.help);
+					fprintf(stderr, "error: %s\n", hformat.help);
 					return 0;
 				}
 			}
@@ -414,7 +408,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 			tmplen = _serialize_parse(hval, format->format, bbuffer, buffer, buflen, forcelen);
 
 			if(!tmplen) {
-				dprintf("error: %s\n", format->help);
+				fprintf(stderr, "error: %s\n", format->help);
 				return 0;
 			}
 
@@ -423,7 +417,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 		}
 
 		if(*buffer != ')') {
-			dprintf("error: In %u position after character not is \"]\".\n", (length_t)(buffer-bbuffer));
+			fprintf(stderr, "error: In %u position after character not is \"]\".\n", (length_t)(buffer-bbuffer));
 			return 0;
 		}
 		buffer++;
@@ -443,19 +437,19 @@ int _serialize_parse_object(void *obj, serialize_object_t *format, const char *b
 
 		tmplen = strtoul(buffer+2, &pos, 10);
 		if(!tmplen) {
-			dprintf("error: In %u position after character not is \":\".\n", (length_t)(buffer-bbuffer));
+			fprintf(stderr, "error: In %u position after character not is \":\".\n", (length_t)(buffer-bbuffer));
 			return 0;
 		}
 
 		if(tmplen >= sizeof(key)) {
-			dprintf("error: In %u position after string length not be more than %u.\n", (length_t)(buffer-bbuffer), (length_t)(sizeof(key)-1));
+			fprintf(stderr, "error: In %u position after string length not be more than %u.\n", (length_t)(buffer-bbuffer), (length_t)(sizeof(key)-1));
 			return 0;
 		}
 
 		buffer = pos + 1 + tmplen;
 
 		if(buflen - (buffer-epos) <= 0 || *buffer != ';') {
-			dprintf("error: In %u position character not is \";\".\n", (length_t)(buffer-bbuffer));
+			fprintf(stderr, "error: In %u position character not is \";\".\n", (length_t)(buffer-bbuffer));
 			return 0;
 		}
 
@@ -483,7 +477,7 @@ int _serialize_parse_object(void *obj, serialize_object_t *format, const char *b
 		tmplen = _serialize_parse(obj, fmt, bbuffer, buffer, buflen, forcelen);
 
 		if(!tmplen) {
-			dprintf("error: %s\n", fmt->help);
+			fprintf(stderr, "error: %s\n", fmt->help);
 			return 0;
 		}
 		
@@ -620,9 +614,11 @@ length_t serialize_parse(void *obj, serialize_format_t *format, const char *buff
 
 	length_t parselen = _serialize_parse(obj, format, buffer, (char*)buffer, buflen, (length_t*)&forcelen);
 
+#ifdef DEBUG
 	if(forcelen>0) {
-		dprintf("forcelen: %u\n", forcelen);
+		printf("forcelen: %u\n", forcelen);
 	}
+#endif
 
 	return parselen;
 }
@@ -638,46 +634,40 @@ length_t serialize_parse_object(void *obj, serialize_object_t *format, const cha
 
 	length_t parselen = _serialize_parse_object(obj, format, buffer, (char*)buffer, buflen, (length_t*)&forcelen);
 
+#ifdef DEBUG
 	if(forcelen>0) {
-		dprintf("forcelen: %u\n", forcelen);
+		printf("forcelen: %u\n", forcelen);
 	}
+#endif
 
 	return parselen;
 }
 
-length_t serialize_string(void *obj, serialize_format_t *format, volatile char **buffer) {
+length_t serialize_string(void *obj, serialize_format_t *format, char **buffer) {
 	assert(obj);
 	assert(format);
 	assert(buffer);
 
-	GString *gstr;
-	length_t buflen;
+	GString gstr={NULL,0,0};
 
-	gstr = g_string_sized_new(1024);
+	serialize_string_ex(&gstr, obj, format);
 
-	serialize_string_ex(gstr, obj, format);
+	*buffer = gstr.str;
 
-	buflen = gstr->len;
-	*buffer = g_string_free(gstr, FALSE);
-
-	return buflen;
+	return gstr.len;
 }
 
-length_t serialize_string_object(void *obj, serialize_object_t *format, volatile char **buffer) {
+length_t serialize_string_object(void *obj, serialize_object_t *format, char **buffer) {
 	assert(obj);
 	assert(format);
 	assert(format->ht);
 	assert(buffer);
 
-	GString *gstr;
-	length_t buflen;
+	GString gstr={NULL,0,0};
 
-	gstr = g_string_sized_new(1024);
+	serialize_string_object_ex(&gstr, obj, format);
 
-	serialize_string_object_ex(gstr, obj, format);
+	*buffer = gstr.str;
 
-	buflen = gstr->len;
-	*buffer = g_string_free(gstr, FALSE);
-
-	return buflen;
+	return gstr.len;
 }

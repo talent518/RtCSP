@@ -2,10 +2,10 @@
 #include <stdbool.h>
 #include "mod_bench_demo.h"
 
-int demo_user_request(conn_t *ptr, volatile char **retbuf) {
-	*retbuf = malloc(1024);
+bool demo_user_request(conn_t *ptr, GString *gstr) {
+	g_string_append_printf(gstr, "%s...",__func__);
 
-	return sprintf(*retbuf, "%s...",__func__);
+	return true;
 }
 
 bool demo_user_response(conn_t *ptr, const char *data, int datalen) {
@@ -14,10 +14,10 @@ bool demo_user_response(conn_t *ptr, const char *data, int datalen) {
 	return true;
 }
 
-int demo_profile_request(conn_t *ptr, volatile char **retbuf) {
-	*retbuf = malloc(1024);
+bool demo_profile_request(conn_t *ptr, GString *gstr) {
+	g_string_append_printf(gstr, "%s...",__func__);
 
-	return sprintf(*retbuf, "%s...",__func__);
+	return true;
 }
 
 bool demo_profile_response(conn_t *ptr, const char *data, int datalen) {

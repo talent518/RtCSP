@@ -34,7 +34,7 @@ void hook_start() {
 		for(j=0;j<rtcsp_modules[i]->conn_recv_len;j++) {
 			ptr = &(rtcsp_modules[i]->conn_recvs[j]);
 			if(g_hash_table_lookup(ht_conn_recvs,ptr->key)) {
-				dprintf("Connection receive hook (%s->%s) is exists.\n", rtcsp_names[i], ptr->key);
+				fprintf(stderr, "Connection receive hook (%s->%s) is exists.\n", rtcsp_names[i], ptr->key);
 			} else {
 				g_hash_table_insert(ht_conn_recvs,ptr->key,ptr->call);
 			}
@@ -74,43 +74,36 @@ void hook_conn_close(conn_t *ptr) {
 }
 
 void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
-	volatile char *buf = NULL;
-	int buflen;
 	conn_recv_func_t call;
 	unsigned int tmplen;
 	srl_hash_t hkey = {NULL, 0};
 	
 	tmplen = serialize_parse((void*)&hkey, &hformat, data, data_len);
 	if(!tmplen) {
-		printf("Parse receive hook key failed(%s).\n", data);
+		fprintf(stderr, "Parse receive hook key failed(%s).\n", data);
+		if(hkey.key) {
+			free(hkey.key);
+		}
 		return;
 	}
 
 	call = g_hash_table_lookup(ht_conn_recvs,hkey.key);
 	if(!call) {
-		printf("Connection receive hook (%s) not exists.\n", hkey.key);
+		fprintf(stderr, "Connection receive hook (%s) not exists.\n", hkey.key);
 		free(hkey.key);
 		return;
 	}
 
-	buflen = call(ptr, data+tmplen, data_len-tmplen, &buf);
-	if(buflen>0) {
-		char *buf2 = (char *)malloc(buflen+tmplen+1);
+	GString gstr = {NULL,0,0};
 
-		strncpy(buf2, data, tmplen);
-		strncpy(buf2+tmplen, buf, buflen);
+	g_string_append_len(&gstr, data, tmplen);
 
-		socket_send(ptr, buf2, buflen+tmplen);
-
-		free(buf2);
-	} else {
-		printf("receive hook (%s) not return message.\n", hkey.key);
-		free(hkey.key);
-		return;
+	if(call(ptr, data+tmplen, data_len-tmplen, &gstr)) {
+		socket_send(ptr, gstr.str, gstr.len);
 	}
 
-	free(buf);
 	free(hkey.key);
+	free(gstr.str);
 }
 
 void hook_conn_denied(conn_t *ptr) {

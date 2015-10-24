@@ -79,6 +79,10 @@ static void *worker_thread_handler(void *arg)
 
 	event_base_loop(me->base, 0);
 
+	event_del(&me->event);
+	event_base_dispatch(me->base);
+	event_base_free(me->base);
+
 	dprintf("thread %d exited\n", me->id);
     pthread_mutex_lock(&init_lock);
 	
@@ -109,8 +113,9 @@ void worker_create(void *(*func)(void *), void *arg)
 
 static void read_handler(int sock, short event,	void* arg)
 {
-	int data_len=0,ret;
-	char *data=NULL;
+	volatile int data_len=0;
+	volatile char *data=NULL;
+	int ret;
 	conn_t *ptr = (conn_t *) arg;
 
 	conn_info(ptr);
@@ -139,7 +144,7 @@ static void notify_handler(const int fd, const short which, void *arg)
 	conn_t *ptr;
 
 	if (fd != me->read_fd) {
-		printf("notify_handler error : fd != me->read_fd\n");
+		fprintf(stderr, "notify_handler error : fd != me->read_fd\n");
 		exit(1);
 	}
 
@@ -415,6 +420,14 @@ void loop_event (int sockfd) {
 	hook_start();
 
 	event_base_loop(listen_thread.base, 0);
+
+	event_del(&listen_thread.notify_ev);
+	event_del(&listen_thread.listen_ev);
+	event_del(&listen_thread.signal_int);
+	event_base_dispatch(listen_thread.base);
+	event_base_free(listen_thread.base);
+
+	free(worker_threads);
 
 	hook_stop();
 
