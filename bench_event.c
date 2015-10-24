@@ -42,6 +42,8 @@ static void read_handler(int sock, short event, void *arg)
 	volatile int data_len=0;
 	volatile char *data=NULL;
 	int ret;
+	char chr[2] = {'r','o'};
+	int chrlen = 1;
 	conn_t *ptr = (conn_t*) arg;
 	worker_thread_t *me = &worker_threads[ptr->tid];
 
@@ -74,6 +76,7 @@ static void read_handler(int sock, short event, void *arg)
 		ret = send_recv->recv_call(ptr, data+tmplen, data_len-tmplen);
 		if(ret>0) {
 			// TODO recv OK
+			chrlen++;
 		} else {
 			fprintf(stderr, "receive data error(%s)\n", data+tmplen);
 		}
@@ -81,6 +84,8 @@ sendnext:
 		if(hkey.key) {
 			free(hkey.key);
 		}
+
+		write(main_thread.write_fd, chr, chrlen);
 
 		send_request(ptr);
 	}
@@ -196,42 +201,55 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 
 static void main_notify_handler(const int fd, const short which, void *arg)
 {
-	unsigned int buf_len,i;
-	char chr[1];
+	unsigned int i;
+	int buf_len,c;
+	char chr[2048];
 	assert(fd == main_thread.read_fd);
 
-	buf_len = read(fd, chr, 1);
+	buf_len = read(fd, chr, sizeof(chr));
 	if (buf_len <= 0) {
 		return;
 	}
 
-	switch(chr[0]) {
-		case 'n': // thread complete
-			if((++main_thread.cthreads) < bench_nthreads) {
-				return;
-			} else {
-				main_thread.cthreads = 0;
-			}
+	for(c=0; c<buf_len; c++) {
+		switch(chr[c]) {
+			case 'n': // thread complete
+				if((++main_thread.cthreads) < bench_nthreads) {
+					return;
+				} else {
+					main_thread.cthreads = 0;
+				}
 
-			if(main_thread.send_recv_id + 1 < bench_modules[main_thread.modid]->recvs_len) {
-				main_thread.send_recv_id++;
-			} else if(main_thread.modid + 1 < bench_length) {
-				main_thread.modid++;
-				main_thread.send_recv_id = 0;
-			} else {
-				signal_handler(0, 0, NULL);
-				return;
-			}
-		case 'b': // begin send request
-			send_recv = &(bench_modules[main_thread.modid]->recvs[main_thread.send_recv_id]);
+				if(main_thread.send_recv_id + 1 < bench_modules[main_thread.modid]->recvs_len) {
+					main_thread.send_recv_id++;
+				} else if(main_thread.modid + 1 < bench_length) {
+					main_thread.modid++;
+					main_thread.send_recv_id = 0;
+				} else {
+					signal_handler(0, 0, NULL);
+					return;
+				}
+			case 'b': // begin send request
+				send_recv = &(bench_modules[main_thread.modid]->recvs[main_thread.send_recv_id]);
 
-			for(i=0; i<bench_nthreads; i++) {
-				write(worker_threads[i].write_fd, &chr, 1);
-			}
-			break;
-		default:
-			break;
+				for(i=0; i<bench_nthreads; i++) {
+					write(worker_threads[i].write_fd, &chr, 1);
+				}
+				break;
+			case 'r': // request number
+				main_thread.requests++;
+				break;
+			case 'o': // success request number
+				main_thread.ok_requests++;
+				break;
+		}
 	}
+}
+
+static void timeout_handler(const int fd, short event, void *arg) {
+	printf("requests: (%d/%d)\n", main_thread.ok_requests, main_thread.requests);
+	main_thread.ok_requests = 0;
+	main_thread.requests = 0;
 }
 
 static void signal_handler(const int fd, short event, void *arg) {
@@ -340,6 +358,9 @@ void loop_event() {
 	main_thread.send_recv_id = 0;
 	main_thread.cthreads = 0;
 
+	main_thread.requests = 0;
+	main_thread.ok_requests = 0;
+
 	// init notify thread
 	thread_init();
 
@@ -348,6 +369,17 @@ void loop_event() {
 	event_base_set(main_thread.base, &main_thread.notify_ev);
 	if (event_add(&main_thread.notify_ev, NULL) == -1) {
 		fprintf(stderr, "event_add()");
+		exit(1);
+	}
+
+	// timeout event
+	struct timeval tv;
+	evutil_timerclear(&tv);
+	tv.tv_sec = 1;
+	event_set(&main_thread.timeout_int, -1, EV_PERSIST, timeout_handler, NULL);
+	event_base_set(main_thread.base, &main_thread.timeout_int);
+	if (event_add(&main_thread.timeout_int, &tv) == -1) {
+		perror("timeout event");
 		exit(1);
 	}
 
@@ -365,6 +397,7 @@ void loop_event() {
 	event_base_loop(main_thread.base, 0);
 
 	event_del(&main_thread.notify_ev);
+	event_del(&main_thread.timeout_int);
 	event_del(&main_thread.signal_int);
 	event_base_dispatch(main_thread.base);
 	event_base_free(main_thread.base);

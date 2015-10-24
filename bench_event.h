@@ -11,6 +11,7 @@ typedef struct
 	pthread_t tid;
 	struct event_base *base;
 	struct event notify_ev;
+	struct event timeout_int;
 	struct event signal_int;
 
 	unsigned int nthreads;
@@ -22,6 +23,9 @@ typedef struct
 	unsigned int modid;
 	unsigned int send_recv_id;
 	conn_send_recv_t *send_recv;
+
+	unsigned int requests;
+	unsigned int ok_requests;
 } main_thread_t;
 
 typedef struct
