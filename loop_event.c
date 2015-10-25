@@ -70,26 +70,27 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d created\n", me->id);
 
-    pthread_mutex_lock(&init_lock);
-
 	hook_thread_init(me);
+
+    pthread_mutex_lock(&init_lock);
     listen_thread.nthreads++;
 	pthread_cond_signal(&init_cond);
     pthread_mutex_unlock(&init_lock);
 
 	event_base_loop(me->base, 0);
 
+	hook_thread_destory(me);
+
 	event_del(&me->event);
 	event_base_dispatch(me->base);
 	event_base_free(me->base);
 
-	dprintf("thread %d exited\n", me->id);
     pthread_mutex_lock(&init_lock);
-	
-	hook_thread_destory(me);
     listen_thread.nthreads--;
     pthread_cond_signal(&init_cond);
     pthread_mutex_unlock(&init_lock);
+
+	dprintf("thread %d exited\n", me->id);
 
 	pthread_detach(me->tid);
 	pthread_exit(NULL);
@@ -338,7 +339,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 		write(worker_threads[i].write_fd, &chr, 1);
 	}
 
-	dprintf("%s: wait worker thread %d\n", __func__);
+	dprintf("%s: wait worker thread\n", __func__);
     pthread_mutex_lock(&init_lock);
     while (listen_thread.nthreads > 0) {
         pthread_cond_wait(&init_cond, &init_lock);

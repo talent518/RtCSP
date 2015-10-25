@@ -6,6 +6,8 @@
 #include <event.h>
 #include "bench.h"
 
+#define AVG_SECONDS 10
+
 typedef struct
 {
 	pthread_t tid;
@@ -24,8 +26,14 @@ typedef struct
 	unsigned int send_recv_id;
 	conn_send_recv_t *send_recv;
 
-	unsigned int requests;
-	unsigned int ok_requests;
+	unsigned int second_requests[AVG_SECONDS], second_ok_requests[AVG_SECONDS]; // 最近AVG_SECONDS秒的请求数/成功数的记录
+	unsigned int current_request_index;
+
+	unsigned int sum_requests, sum_ok_requests; // 最近AVG_SECONDS秒的请求数/成功数的平均值
+	unsigned int min_requests, min_ok_requests; // 最小值
+	unsigned int max_requests, max_ok_requests; // 最大值
+
+	unsigned int requests,ok_requests; // 当前秒的请求数/成功数的值
 } main_thread_t;
 
 typedef struct

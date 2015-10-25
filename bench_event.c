@@ -9,6 +9,9 @@
 #include "bench_event.h"
 #include "socket.h"
 
+#define max(a, b) ((a)>(b) ? (a) : (b))
+#define min(a, b) ((a)<(b) ? (a) : (b))
+
 typedef struct
 {
 	char *key;
@@ -132,7 +135,6 @@ static void *worker_thread_handler(void *arg)
 	dprintf("thread %d connect success(%d), fail(%d)\n", me->id, me->conn_num, bench_requests - me->conn_num);
 
     pthread_mutex_lock(&init_lock);
-
     main_thread.nthreads++;
 	pthread_cond_signal(&init_cond);
     pthread_mutex_unlock(&init_lock);
@@ -157,12 +159,12 @@ static void *worker_thread_handler(void *arg)
 	event_base_dispatch(me->base);
 	event_base_free(me->base);
 
-	dprintf("thread %d exited\n", me->id);
     pthread_mutex_lock(&init_lock);
-
     main_thread.nthreads--;
     pthread_cond_signal(&init_cond);
     pthread_mutex_unlock(&init_lock);
+
+	dprintf("thread %d exited\n", me->id);
 
 	pthread_detach(me->tid);
 	pthread_exit(NULL);
@@ -247,7 +249,25 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 }
 
 static void timeout_handler(const int fd, short event, void *arg) {
-	printf("requests: (%d/%d)\n", main_thread.ok_requests, main_thread.requests);
+	float count = (main_thread.second_requests[main_thread.current_request_index] ? AVG_SECONDS : main_thread.current_request_index+1);
+
+	main_thread.sum_requests -= main_thread.second_requests[main_thread.current_request_index];
+	main_thread.sum_ok_requests -= main_thread.second_ok_requests[main_thread.current_request_index];
+
+	main_thread.sum_requests += main_thread.requests;
+	main_thread.sum_ok_requests += main_thread.ok_requests;
+
+	main_thread.min_requests = min(main_thread.min_requests, main_thread.requests);
+	main_thread.min_ok_requests = min(main_thread.min_ok_requests, main_thread.ok_requests);
+
+	main_thread.max_requests = max(main_thread.max_requests, main_thread.requests);
+	main_thread.max_ok_requests = max(main_thread.max_ok_requests, main_thread.ok_requests);
+
+	printf("requests[%d]: (%d/%d) min(%d/%d) max(%d/%d) avg(%.1f/%.1f)\n", main_thread.current_request_index, main_thread.ok_requests, main_thread.requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
+
+	main_thread.second_requests[main_thread.current_request_index] = main_thread.requests;
+	main_thread.second_ok_requests[main_thread.current_request_index] = main_thread.ok_requests;
+	main_thread.current_request_index = (main_thread.current_request_index+1)%AVG_SECONDS;
 	main_thread.ok_requests = 0;
 	main_thread.requests = 0;
 }
@@ -264,7 +284,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 		write(worker_threads[i].write_fd, &chr, 1);
 	}
 
-	dprintf("%s: wait worker thread %d\n", __func__);
+	dprintf("%s: wait worker thread\n", __func__);
     pthread_mutex_lock(&init_lock);
     while (main_thread.nthreads > 0) {
         pthread_cond_wait(&init_cond, &init_lock);
@@ -358,8 +378,20 @@ void loop_event() {
 	main_thread.send_recv_id = 0;
 	main_thread.cthreads = 0;
 
+	unsigned int i;
+	for(i=0; i<AVG_SECONDS; i++) {
+		main_thread.second_requests[i] = 0;
+		main_thread.second_ok_requests[i] = 0;
+	}
+	main_thread.sum_requests = 0;
+	main_thread.sum_ok_requests = 0;
+	main_thread.min_requests = UINT_MAX;
+	main_thread.min_ok_requests = UINT_MAX;
+	main_thread.max_requests = 0;
+	main_thread.max_ok_requests = 0;
 	main_thread.requests = 0;
 	main_thread.ok_requests = 0;
+	main_thread.current_request_index = 0;
 
 	// init notify thread
 	thread_init();
