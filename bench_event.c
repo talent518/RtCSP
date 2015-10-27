@@ -45,7 +45,6 @@ static void read_handler(int sock, short event, void *arg)
 	volatile int data_len=0;
 	volatile char *data=NULL;
 	int ret;
-	char chr[2] = {'r','o'};
 	int chrlen = 1;
 	conn_t *ptr = (conn_t*) arg;
 	worker_thread_t *me = &worker_threads[ptr->tid];
@@ -78,8 +77,7 @@ static void read_handler(int sock, short event, void *arg)
 
 		ret = send_recv->recv_call(ptr, data+tmplen, data_len-tmplen);
 		if(ret>0) {
-			// TODO recv OK
-			chrlen++;
+			__sync_fetch_and_add(&main_thread.ok_requests, 1);
 		} else {
 			fprintf(stderr, "receive data error(%s)\n", data+tmplen);
 		}
@@ -88,7 +86,7 @@ sendnext:
 			free(hkey.key);
 		}
 
-		write(main_thread.write_fd, chr, chrlen);
+		__sync_fetch_and_add(&main_thread.requests, 1);
 
 		send_request(ptr);
 	}
@@ -238,38 +236,32 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 					write(worker_threads[i].write_fd, &chr, 1);
 				}
 				break;
-			case 'r': // request number
-				main_thread.requests++;
-				break;
-			case 'o': // success request number
-				main_thread.ok_requests++;
-				break;
 		}
 	}
 }
 
 static void timeout_handler(const int fd, short event, void *arg) {
+	unsigned int requests = __sync_lock_test_and_set(&main_thread.requests, 0);
+	unsigned int ok_requests = __sync_lock_test_and_set(&main_thread.ok_requests, 0);
 	float count = (main_thread.second_requests[main_thread.current_request_index] ? AVG_SECONDS : main_thread.current_request_index+1);
 
 	main_thread.sum_requests -= main_thread.second_requests[main_thread.current_request_index];
 	main_thread.sum_ok_requests -= main_thread.second_ok_requests[main_thread.current_request_index];
 
-	main_thread.sum_requests += main_thread.requests;
-	main_thread.sum_ok_requests += main_thread.ok_requests;
+	main_thread.sum_requests += requests;
+	main_thread.sum_ok_requests += ok_requests;
 
-	main_thread.min_requests = min(main_thread.min_requests, main_thread.requests);
-	main_thread.min_ok_requests = min(main_thread.min_ok_requests, main_thread.ok_requests);
+	main_thread.min_requests = min(main_thread.min_requests, requests);
+	main_thread.min_ok_requests = min(main_thread.min_ok_requests, ok_requests);
 
-	main_thread.max_requests = max(main_thread.max_requests, main_thread.requests);
-	main_thread.max_ok_requests = max(main_thread.max_ok_requests, main_thread.ok_requests);
+	main_thread.max_requests = max(main_thread.max_requests, requests);
+	main_thread.max_ok_requests = max(main_thread.max_ok_requests, ok_requests);
 
-	printf("requests[%d]: (%d/%d) min(%d/%d) max(%d/%d) avg(%.1f/%.1f)\n", main_thread.current_request_index, main_thread.ok_requests, main_thread.requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
+	printf("requests[%d]: (%d/%d) min(%d/%d) max(%d/%d) avg(%.1f/%.1f)\n", main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
 
-	main_thread.second_requests[main_thread.current_request_index] = main_thread.requests;
-	main_thread.second_ok_requests[main_thread.current_request_index] = main_thread.ok_requests;
+	main_thread.second_requests[main_thread.current_request_index] = requests;
+	main_thread.second_ok_requests[main_thread.current_request_index] = ok_requests;
 	main_thread.current_request_index = (main_thread.current_request_index+1)%AVG_SECONDS;
-	main_thread.ok_requests = 0;
-	main_thread.requests = 0;
 }
 
 static void signal_handler(const int fd, short event, void *arg) {
