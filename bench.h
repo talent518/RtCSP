@@ -56,7 +56,7 @@ typedef struct
 	unsigned int recvs_len;
 } bench_module_t;
 
-extern char bench_host[16];
+extern char *bench_host;
 extern unsigned int bench_port;
 extern unsigned int bench_nthreads;
 extern unsigned int bench_requests;

@@ -157,8 +157,8 @@ int main(int argc, char *argv[])
 				rtcsp_usage(argv[0]);
 				exit_status=0;
 				goto out;
-			case 'v': /* show RtCSP version & quit */
-				printf("RtCSP %s (built: %s %s) %s\nCopyright (c) 1997-2012 The Abao\n%s", RTCSP_NAME, __DATE__, __TIME__);
+			case 'v': /* show RtCSPd version & quit */
+				printf("rtcspd %s (built: %s %s)\nCopyright (c) 1997-2012 The Abao\n", RTCSP_VERSION, __DATE__, __TIME__);
 				exit_status=0;
 				goto out;
 				break;
