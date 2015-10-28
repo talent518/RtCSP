@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		argv[1]="-?";
 	}
 
-	while ((c = rtcsp_getopt(argc, argv, OPTIONS, &rtcsp_optarg, &rtcsp_optind, 0, 2))!=-1)
+	while ((c = rtcsp_getopt(argc, argv, OPTIONS, &rtcsp_optarg, &rtcsp_optind, 1, 2))!=-1)
 	{
 		switch (c)
 		{

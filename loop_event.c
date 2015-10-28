@@ -16,7 +16,7 @@
 static pthread_mutex_t init_lock, conn_lock;
 static pthread_cond_t init_cond;
 
-int rtcsp_nthreads = 10;
+int rtcsp_nthreads;
 
 listen_thread_t listen_thread;
 worker_thread_t *worker_threads;
@@ -369,6 +369,8 @@ static void signal_handler(const int fd, short event, void *arg) {
 }
 
 void loop_event (int sockfd) {
+	rtcsp_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
+
 	// init main thread
 	listen_thread.sockfd = sockfd;
 	listen_thread.base = event_init();

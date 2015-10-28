@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <event.h>
+#include <glib.h>
 #include "bench.h"
 
 #define AVG_SECONDS 10

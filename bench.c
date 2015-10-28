@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "bench.h"
@@ -10,8 +11,8 @@
 
 char *bench_host = "127.0.0.1";
 unsigned int bench_port = 8083;
-unsigned int bench_nthreads = 10;
-unsigned int bench_requests = 20;
+unsigned int bench_nthreads;
+unsigned int bench_requests = 128;
 int bench_maxrecvs = 2*1024*1024;
 
 #define OPT_HOST 1
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]) {
 		goto begin;
 	}
 
-	while ((c = rtcsp_getopt(argc, argv, OPTIONS, &bench_optarg, &bench_optind, 0, 2))!=-1)
+	while ((c = rtcsp_getopt(argc, argv, OPTIONS, &bench_optarg, &bench_optind, 1, 2))!=-1)
 	{
 		switch (c)
 		{
@@ -162,6 +163,8 @@ int main(int argc, char *argv[]) {
 	}
 
 begin:
+	bench_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
+
 	loop_event();
 	return 0;
 
