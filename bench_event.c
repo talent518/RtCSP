@@ -30,9 +30,12 @@ static pthread_cond_t init_cond;
 static void signal_handler(const int fd, short event, void *arg);
 
 void send_request(conn_t *ptr) {
-	GString gstr={NULL,0,0};
+	GString gstr = {NULL, 0, 0};
 
+	conn_info(ptr);
+	
 	serialize_string_ex(&gstr, send_recv, &hformat);
+
 	if(send_recv->send_call(ptr, &gstr)) {
 		socket_send(ptr, gstr.str, gstr.len);
 	}
@@ -132,10 +135,10 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d connect success(%d), fail(%d)\n", me->id, me->conn_num, bench_requests - me->conn_num);
 
-    pthread_mutex_lock(&init_lock);
-    main_thread.nthreads++;
+	pthread_mutex_lock(&init_lock);
+	main_thread.nthreads++;
 	pthread_cond_signal(&init_cond);
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_unlock(&init_lock);
 
 	event_base_loop(me->base, 0);
 	
@@ -154,13 +157,12 @@ static void *worker_thread_handler(void *arg)
 	dprintf("thread %d socket closed\n", me->id);
 
 	event_del(&me->event);
-	event_base_dispatch(me->base);
 	event_base_free(me->base);
 
-    pthread_mutex_lock(&init_lock);
-    main_thread.nthreads--;
-    pthread_cond_signal(&init_cond);
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_lock(&init_lock);
+	main_thread.nthreads--;
+	pthread_cond_signal(&init_cond);
+	pthread_mutex_unlock(&init_lock);
 
 	dprintf("thread %d exited\n", me->id);
 
@@ -181,6 +183,8 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 	if (buf_len <= 0) {
 		return;
 	}
+
+	dprintf("%s(%c)\n", __func__, chr[0]);
 
 	switch(chr[0]) {
 		case 'n':
@@ -203,7 +207,7 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 {
 	unsigned int i;
 	int buf_len,c;
-	char chr[2048];
+	char chr[1024];
 	assert(fd == main_thread.read_fd);
 
 	buf_len = read(fd, chr, sizeof(chr));
@@ -212,6 +216,8 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 	}
 
 	for(c=0; c<buf_len; c++) {
+		dprintf("%s(%c)\n", __func__, chr[c]);
+
 		switch(chr[c]) {
 			case 'n': // thread complete
 				if((++main_thread.cthreads) < bench_nthreads) {
@@ -233,7 +239,7 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 				send_recv = &(bench_modules[main_thread.modid]->recvs[main_thread.send_recv_id]);
 
 				for(i=0; i<bench_nthreads; i++) {
-					write(worker_threads[i].write_fd, &chr, 1);
+					write(worker_threads[i].write_fd, &chr[c], 1);
 				}
 				break;
 		}
@@ -277,11 +283,11 @@ static void signal_handler(const int fd, short event, void *arg) {
 	}
 
 	dprintf("%s: wait worker thread\n", __func__);
-    pthread_mutex_lock(&init_lock);
-    while (main_thread.nthreads > 0) {
-        pthread_cond_wait(&init_cond, &init_lock);
-    }
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_lock(&init_lock);
+	while (main_thread.nthreads > 0) {
+		pthread_cond_wait(&init_cond, &init_lock);
+	}
+	pthread_mutex_unlock(&init_lock);
 
 	dprintf("%s: exit main thread\n", __func__);
 	event_base_loopbreak(main_thread.base);
@@ -303,7 +309,7 @@ void worker_create(void *(*func)(void *), void *arg)
 
 void thread_init() {
 	pthread_mutex_init(&init_lock, NULL);
-    pthread_cond_init(&init_cond, NULL);
+	pthread_cond_init(&init_cond, NULL);
 
 	pthread_mutex_init(&conn_lock, NULL);
 
@@ -341,11 +347,11 @@ void thread_init() {
 	}
 
 	/* Wait for all the worker_threads to set themselves up before returning. */
-    pthread_mutex_lock(&init_lock);
-    while (main_thread.nthreads < bench_nthreads) {
-        pthread_cond_wait(&init_cond, &init_lock);
-    }
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_lock(&init_lock);
+	while (main_thread.nthreads < bench_nthreads) {
+		pthread_cond_wait(&init_cond, &init_lock);
+	}
+	pthread_mutex_unlock(&init_lock);
 }
 
 void loop_event() {
@@ -418,12 +424,13 @@ void loop_event() {
 	char chr[1] = {'b'};
 	write(main_thread.write_fd, chr, 1);
 
+	event_base_dispatch(main_thread.base);
+
 	event_base_loop(main_thread.base, 0);
 
 	event_del(&main_thread.notify_ev);
 	event_del(&main_thread.timeout_int);
 	event_del(&main_thread.signal_int);
-	event_base_dispatch(main_thread.base);
 	event_base_free(main_thread.base);
 
 	free(worker_threads);

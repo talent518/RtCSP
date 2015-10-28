@@ -143,6 +143,7 @@ conn_t *socket_connect(const char *host, short int port){
 	if(sockfd<0){
 		return 0;
 	}
+
 	int opt=1;
 	setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(int));//
 
@@ -160,9 +161,11 @@ conn_t *socket_connect(const char *host, short int port){
 	m_sLinger.l_linger=5;//(容许逗留的时间为5秒)
 	setsockopt(sockfd,SOL_SOCKET,SO_LINGER,(const char*)&m_sLinger,sizeof(linger));
 
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
 	int send_recv_buffers=0;
 	setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,(char *)&send_recv_buffers,sizeof(int));//发送缓冲区大小
 	setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(char *)&send_recv_buffers,sizeof(int));//接收缓冲区大小
+#endif
 
 	bzero(&sin,sizeof(sin));
 	sin.sin_family=AF_INET;

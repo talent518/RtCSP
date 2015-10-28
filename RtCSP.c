@@ -117,6 +117,8 @@ int main(int argc, char *argv[])
 	int hide_argv = 0;
 	/* end of temporary locals */
 
+	rtcsp_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
+
 	if (argc==1)
 	{
 		argc=2;

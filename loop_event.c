@@ -82,7 +82,6 @@ static void *worker_thread_handler(void *arg)
 	hook_thread_destory(me);
 
 	event_del(&me->event);
-	event_base_dispatch(me->base);
 	event_base_free(me->base);
 
     pthread_mutex_lock(&init_lock);
@@ -369,8 +368,6 @@ static void signal_handler(const int fd, short event, void *arg) {
 }
 
 void loop_event (int sockfd) {
-	rtcsp_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
-
 	// init main thread
 	listen_thread.sockfd = sockfd;
 	listen_thread.base = event_init();
@@ -427,7 +424,6 @@ void loop_event (int sockfd) {
 	event_del(&listen_thread.notify_ev);
 	event_del(&listen_thread.listen_ev);
 	event_del(&listen_thread.signal_int);
-	event_base_dispatch(listen_thread.base);
 	event_base_free(listen_thread.base);
 
 	free(worker_threads);

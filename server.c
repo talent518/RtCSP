@@ -49,6 +49,7 @@ int server_start()
 		printf("Not on the host %s bind port %d\n",rtcsp_host,rtcsp_port);
 		return 0;
 	}
+
 	int opt=1;
 	setsockopt(listen_fd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(int));
     setsockopt(listen_fd, SOL_SOCKET, SO_KEEPALIVE,&opt, sizeof(int));
@@ -68,9 +69,11 @@ int server_start()
 	m_sLinger.l_linger=5;//(容许逗留的时间为5秒)
 	setsockopt(listen_fd,SOL_SOCKET,SO_LINGER,&m_sLinger,sizeof(linger));
 
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
 	int send_buffer=0,recv_buffer=0;
 	setsockopt(listen_fd,SOL_SOCKET,SO_SNDBUF,&send_buffer,sizeof(int));//发送缓冲区大小
 	setsockopt(listen_fd,SOL_SOCKET,SO_RCVBUF,&recv_buffer,sizeof(int));//接收缓冲区大小
+#endif
 
 	bzero(&sin,sizeof(sin));
 	sin.sin_family=AF_INET;
@@ -123,14 +126,15 @@ int server_start()
 	struct passwd *pwnam;
 	pwnam = getpwnam(rtcsp_user);
 
-	if(!pwnam)
+	if(pwnam)
+	{
+		setuid(pwnam->pw_uid);
+		setgid(pwnam->pw_gid);
+	}
+	else
 	{
 		printf("Not found user %s.\n", rtcsp_user);
-		exit(1);
 	}
-
-	setuid(pwnam->pw_uid);
-	setgid(pwnam->pw_gid);
 
 	ret=setsid();
 	if (ret<1)

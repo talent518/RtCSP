@@ -84,20 +84,13 @@ static void bench_usage(char *argv0)
 /* }}} */
 
 int main(int argc, char *argv[]) {
-#ifdef HAVE_SIGNAL_H
-#if defined(SIGPIPE) && defined(SIG_IGN)
-	signal(SIGPIPE, SIG_IGN);
-#endif
-#if defined(SIGCHLD) && defined(SIG_IGN)
-	signal(SIGCHLD,SIG_IGN);
-#endif
-#endif
-
 	int exit_status = 0;
 	int c,i,j;
 	/* temporary locals */
 	int hide_argv = 0;
 	/* end of temporary locals */
+
+	bench_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
 
 	if (argc==1)
 	{
@@ -163,9 +156,8 @@ int main(int argc, char *argv[]) {
 	}
 
 begin:
-	bench_nthreads = sysconf(_SC_NPROCESSORS_CONF)*2;
-
 	loop_event();
+
 	return 0;
 
 out:
