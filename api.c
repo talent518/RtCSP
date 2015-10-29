@@ -7,8 +7,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define MICRO_IN_SEC 1000000.00
-
 double microtime()
 {
 	struct timeval tp = {0};
@@ -17,7 +15,7 @@ double microtime()
 		return 0;
 	}
 
-	return (double)(tp.tv_sec + tp.tv_usec / MICRO_IN_SEC);
+	return tp.tv_sec + ((double)tp.tv_usec / 1000000);
 }
 
 char *fsize(int size)
@@ -43,7 +41,7 @@ char *gad(const char *argv0)
 	strncpy(bpath,argv0,strrchr(argv0,'/')-argv0);
 	if (*bpath=='.')
 	{
-		char *path,*q,*p,c;
+		char *path,*q,*p;
 
 		path=(char *)malloc(255);
 		getcwd(path,255);
@@ -59,7 +57,7 @@ char *gad(const char *argv0)
 			strcat(path,bpath+1);
 		}
 
-		while (p=strstr(path,".."))
+		while ((p=strstr(path,"..")))
 		{
 			q=p-1;
 			do

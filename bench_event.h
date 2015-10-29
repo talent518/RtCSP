@@ -27,6 +27,8 @@ typedef struct
 	unsigned int send_recv_id;
 	conn_send_recv_t *send_recv;
 
+	volatile unsigned int conn_num; // 当前连接数
+
 	unsigned int second_requests[AVG_SECONDS], second_ok_requests[AVG_SECONDS]; // 最近AVG_SECONDS秒的请求数/成功数的记录
 	unsigned int current_request_index;
 
@@ -34,7 +36,7 @@ typedef struct
 	unsigned int min_requests, min_ok_requests; // 最小值
 	unsigned int max_requests, max_ok_requests; // 最大值
 
-	unsigned int requests,ok_requests; // 当前秒的请求数/成功数的值
+	volatile unsigned int requests,ok_requests; // 当前秒的请求数/成功数的值
 } main_thread_t;
 
 typedef struct
@@ -49,6 +51,14 @@ typedef struct
 
 	conn_t **conns;
 	unsigned int conn_num;
+
+	unsigned int complete_conn_num;
+	unsigned int close_conn_num;
+	unsigned int preclose_conn_num;
+
+	unsigned int requests,ok_requests;
+
+	double tmp_time,run_time,conn_time,close_conn_time;
 } worker_thread_t;
 
 extern main_thread_t main_thread;

@@ -8,6 +8,7 @@
 #include "serialize.h"
 #include "bench_event.h"
 #include "socket.h"
+#include "api.h"
 
 #define max(a, b) ((a)>(b) ? (a) : (b))
 #define min(a, b) ((a)<(b) ? (a) : (b))
@@ -48,7 +49,7 @@ static void read_handler(int sock, short event, void *arg)
 	volatile int data_len=0;
 	volatile char *data=NULL;
 	int ret;
-	int chrlen = 1;
+	char chr='n';
 	conn_t *ptr = (conn_t*) arg;
 	worker_thread_t *me = &worker_threads[ptr->tid];
 
@@ -61,6 +62,12 @@ static void read_handler(int sock, short event, void *arg)
 		socket_close(ptr);
 		me->conns[ptr->index] = NULL;
 		free(ptr);
+
+		me->close_conn_num++;
+		if(me->close_conn_num+me->complete_conn_num == me->conn_num) {
+			me->run_time = microtime() - me->tmp_time;
+			write(main_thread.write_fd, &chr, 1);
+		}
 	} else {//接收数据成功
 		unsigned int tmplen;
 		srl_hash_t hkey = {NULL, 0};
@@ -81,6 +88,7 @@ static void read_handler(int sock, short event, void *arg)
 		ret = send_recv->recv_call(ptr, data+tmplen, data_len-tmplen);
 		if(ret>0) {
 			__sync_fetch_and_add(&main_thread.ok_requests, 1);
+			me->ok_requests++;
 		} else {
 			fprintf(stderr, "receive data error(%s)\n", data+tmplen);
 		}
@@ -90,8 +98,17 @@ sendnext:
 		}
 
 		__sync_fetch_and_add(&main_thread.requests, 1);
+		me->requests++;
 
-		send_request(ptr);
+		if((++ptr->requests) < bench_preconn_requests) {
+			send_request(ptr);
+		} else {
+			me->complete_conn_num++;
+			if(me->close_conn_num+me->complete_conn_num == me->conn_num) {
+				me->run_time = microtime() - me->tmp_time;
+				write(main_thread.write_fd, &chr, 1);
+			}
+		}
 	}
 	if(data) {
 		free(data);
@@ -107,11 +124,12 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d created\n", me->id);
 
-	me->conns = (conn_t**)malloc(sizeof(conn_t*)*bench_requests);
+	me->conns = (conn_t**)malloc(sizeof(conn_t*)*bench_prethread_conns);
 	me->conn_num = 0;
 
 	dprintf("thread %d socket connectting...\n", me->id);
-	for(i=0; i<bench_requests; i++) {
+	me->tmp_time = microtime();
+	for(i=0; i<bench_prethread_conns; i++) {
 		j = 0;
 		do
 		{
@@ -130,10 +148,12 @@ static void *worker_thread_handler(void *arg)
 
 			me->conns[ptr->index] = ptr;
 			me->conn_num++;
+
+			__sync_fetch_and_add(&main_thread.conn_num, 1);
 		}
 	}
-
-	dprintf("thread %d connect success(%d), fail(%d)\n", me->id, me->conn_num, bench_requests - me->conn_num);
+	me->conn_time = microtime() - me->tmp_time;
+	dprintf("thread %d connect success(%d), fail(%d), runtime(%.3lfs)\n", me->id, me->conn_num, bench_prethread_conns - me->conn_num, me->conn_time);
 
 	pthread_mutex_lock(&init_lock);
 	main_thread.nthreads++;
@@ -143,6 +163,7 @@ static void *worker_thread_handler(void *arg)
 	event_base_loop(me->base, 0);
 	
 	dprintf("thread %d socket closing...\n", me->id);
+	me->tmp_time = microtime();
 	for(i=0; i<me->conn_num; i++) {
 		if(!me->conns[i]) {
 			continue;
@@ -153,8 +174,10 @@ static void *worker_thread_handler(void *arg)
 		free(me->conns[i]);
 		me->conns[i] = NULL;
 	}
+	me->close_conn_time = microtime() - me->tmp_time;
+	dprintf("thread %d socket closed runtime(%.3fs)\n", me->id, me->close_conn_time);
+
 	free(me->conns);
-	dprintf("thread %d socket closed\n", me->id);
 
 	event_del(&me->event);
 	event_base_free(me->base);
@@ -175,27 +198,40 @@ static void *worker_thread_handler(void *arg)
 static void worker_notify_handler(const int fd, const short which, void *arg)
 {
 	unsigned int buf_len,i;
-	char chr[1];
+	char chr;
+	conn_t *ptr;
 	worker_thread_t *me = arg;
 	assert(fd == me->read_fd);
 
-	buf_len = read(fd, chr, 1);
+	buf_len = read(fd, &chr, 1);
 	if (buf_len <= 0) {
 		return;
 	}
 
-	dprintf("%s(%c)\n", __func__, chr[0]);
+	dprintf("%s(%c)\n", __func__, chr);
 
-	switch(chr[0]) {
+	switch(chr) {
 		case 'n':
 		case 'b': // begin send request
+			me->requests = 0;
+			me->ok_requests = 0;
+			me->complete_conn_num = 0;
+			if(me->close_conn_num == me->conn_num) {
+				me->run_time = microtime() - me->tmp_time;
+				write(main_thread.write_fd, &chr, 1);
+				break;
+			}
+			me->tmp_time = microtime();
 			for(i=0; i<me->conn_num; i++) {
-				if(me->conns[i]) {
-					send_request(me->conns[i]);
+				ptr = me->conns[i];
+				if(ptr) {
+					ptr->requests = 0;
+					send_request(ptr);
 				}
 			}
 			break;
 		case '-':
+			me->run_time = microtime() - me->tmp_time;
 			event_base_loopbreak(me->base);
 			break;
 		default:
@@ -207,39 +243,59 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 {
 	unsigned int i;
 	int buf_len,c;
-	char chr[1024];
+	char buf[64];
 	assert(fd == main_thread.read_fd);
 
-	buf_len = read(fd, chr, sizeof(chr));
+	buf_len = read(fd, buf, sizeof(buf));
 	if (buf_len <= 0) {
 		return;
 	}
 
 	for(c=0; c<buf_len; c++) {
-		dprintf("%s(%c)\n", __func__, chr[c]);
+		dprintf("%s(%c)\n", __func__, buf[c]);
 
-		switch(chr[c]) {
+		switch(buf[c]) {
 			case 'n': // thread complete
 				if((++main_thread.cthreads) < bench_nthreads) {
-					return;
+					break;
 				} else {
 					main_thread.cthreads = 0;
 				}
 
-				if(main_thread.send_recv_id + 1 < bench_modules[main_thread.modid]->recvs_len) {
-					main_thread.send_recv_id++;
-				} else if(main_thread.modid + 1 < bench_length) {
-					main_thread.modid++;
+				send_recv->run_time = 0;
+				send_recv->cause_close_conn_num = 0;
+				send_recv->requests = 0;
+				send_recv->ok_requests = 0;
+				send_recv->throughput_requests = 0;
+				send_recv->throughput_ok_requests = 0;
+				for(i=0; i<bench_nthreads; i++) {
+					send_recv->run_time += worker_threads[i].run_time;
+					send_recv->cause_close_conn_num += (worker_threads[i].close_conn_num - worker_threads[i].preclose_conn_num);
+					send_recv->requests += worker_threads[i].requests;
+					send_recv->ok_requests += worker_threads[i].ok_requests;
+					send_recv->throughput_requests += (worker_threads[i].requests/worker_threads[i].run_time);
+					send_recv->throughput_ok_requests += (worker_threads[i].ok_requests/worker_threads[i].run_time);
+				}
+
+				if((++main_thread.send_recv_id) < bench_modules[main_thread.modid]->recvs_len) {
+				} else if((++main_thread.modid) < bench_length) {
 					main_thread.send_recv_id = 0;
 				} else {
+					send_recv = NULL;
 					signal_handler(0, 0, NULL);
 					return;
 				}
 			case 'b': // begin send request
 				send_recv = &(bench_modules[main_thread.modid]->recvs[main_thread.send_recv_id]);
+				send_recv->cause_close_conn_num = 0;
+				send_recv->requests = 0;
+				send_recv->ok_requests = 0;
 
 				for(i=0; i<bench_nthreads; i++) {
-					write(worker_threads[i].write_fd, &chr[c], 1);
+					worker_threads[i].preclose_conn_num = worker_threads[i].close_conn_num;
+					worker_threads[i].requests = 0;
+					worker_threads[i].ok_requests = 0;
+					write(worker_threads[i].write_fd, &buf[c], 1);
 				}
 				break;
 		}
@@ -263,7 +319,7 @@ static void timeout_handler(const int fd, short event, void *arg) {
 	main_thread.max_requests = max(main_thread.max_requests, requests);
 	main_thread.max_ok_requests = max(main_thread.max_ok_requests, ok_requests);
 
-	printf("requests[%d]: (%d/%d) min(%d/%d) max(%d/%d) avg(%.1f/%.1f)\n", main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
+	printf("send_recv(%s), connections(%d), requests(%d): (%d/%d) min(%d/%d) max(%d/%d) avg(%.3f/%.3f)\n", send_recv->key, main_thread.conn_num, main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
 
 	main_thread.second_requests[main_thread.current_request_index] = requests;
 	main_thread.second_ok_requests[main_thread.current_request_index] = ok_requests;
@@ -288,6 +344,13 @@ static void signal_handler(const int fd, short event, void *arg) {
 		pthread_cond_wait(&init_cond, &init_lock);
 	}
 	pthread_mutex_unlock(&init_lock);
+
+	if(send_recv) {
+		send_recv->run_time = 0;
+		for(i=0; i<bench_nthreads; i++) {
+			send_recv->run_time += worker_threads[i].run_time;
+		}
+	}
 
 	dprintf("%s: exit main thread\n", __func__);
 	event_base_loopbreak(main_thread.base);
@@ -352,6 +415,21 @@ void thread_init() {
 		pthread_cond_wait(&init_cond, &init_lock);
 	}
 	pthread_mutex_unlock(&init_lock);
+}
+
+static void print_test_info() {
+	unsigned int i,j;
+	conn_send_recv_t *recv;
+
+	for(i=0;i<bench_length;i++) {
+		printf("%s:\n",bench_names[i]);
+		for(j=0;j<bench_modules[i]->recvs_len;j++) {
+			recv = &(bench_modules[i]->recvs[j]);
+			recv->run_time = max(1, recv->run_time);
+			printf("    %s: closes(%d), requests(%d / %d), runtime(%.3f second), ok_requests(%.3f/s), requests(%.3f/s)\n", recv->key, recv->cause_close_conn_num, recv->ok_requests, recv->requests, recv->run_time, recv->throughput_ok_requests, recv->throughput_requests);
+		}
+		printf("\n");
+	}
 }
 
 void loop_event() {
@@ -424,14 +502,14 @@ void loop_event() {
 	char chr[1] = {'b'};
 	write(main_thread.write_fd, chr, 1);
 
-	event_base_dispatch(main_thread.base);
-
 	event_base_loop(main_thread.base, 0);
 
 	event_del(&main_thread.notify_ev);
 	event_del(&main_thread.timeout_int);
 	event_del(&main_thread.signal_int);
 	event_base_free(main_thread.base);
+
+	print_test_info();
 
 	free(worker_threads);
 }

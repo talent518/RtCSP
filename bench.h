@@ -36,6 +36,8 @@ typedef struct _conn_t{
 	int rbytes;
 	int rsize;
 
+	unsigned int requests;
+
 	struct event event;
 } conn_t;
 
@@ -48,6 +50,12 @@ typedef struct
 	unsigned int keylen;
 	conn_send_func_t send_call;
 	conn_recv_func_t recv_call;
+
+	unsigned int cause_close_conn_num;
+	unsigned int requests,ok_requests;
+	double throughput_requests,throughput_ok_requests;
+
+	double run_time;
 } conn_send_recv_t;
 
 typedef struct
@@ -59,7 +67,8 @@ typedef struct
 extern char *bench_host;
 extern unsigned int bench_port;
 extern unsigned int bench_nthreads;
-extern unsigned int bench_requests;
+extern unsigned int bench_prethread_conns;
+extern unsigned int bench_preconn_requests;
 extern int bench_maxrecvs;
 
 extern unsigned int bench_length;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
@@ -12,14 +13,17 @@
 char *bench_host = "127.0.0.1";
 unsigned int bench_port = 8083;
 unsigned int bench_nthreads;
-unsigned int bench_requests = 128;
+unsigned int bench_prethread_conns = 10;
+unsigned int bench_preconn_requests = 10;
+
 int bench_maxrecvs = 2*1024*1024;
 
 #define OPT_HOST 1
 #define OPT_PORT 2
 #define OPT_NTHREADS 3
-#define OPT_REQUESTS 4
-#define OPT_MAX_RECVS 5
+#define OPT_CONNS 4
+#define OPT_REQUESTS 5
+#define OPT_MAX_RECVS 6
 
 volatile char *bench_optarg = NULL;
 volatile int bench_optind = 1;
@@ -36,6 +40,7 @@ static const opt_struct OPTIONS[] =
 	{OPT_PORT,  1, "port"},
 
 	{OPT_NTHREADS,  1, "nthreads"},
+	{OPT_CONNS,  1, "conns"},
 	{OPT_REQUESTS,  1, "requests"},
 
 	{OPT_MAX_RECVS,  1, "max-recvs"},
@@ -71,19 +76,29 @@ static void bench_usage(char *argv0)
 			"  -v                      Version number\n"
 			"  -m                      The display module list\n"
 			"\n"
-			"  --host <IP>             Listen host (default: %s)\n"
-			"  --port <port>           Listen port (default: %d)\n"
-			"  --nthreads <number>     LibEvent thread number (default: %d)\n"
-			"  --requests <number>     connection request number (default: %d)\n"
+			"  --host <IP>             Host IP (default: %s)\n"
+			"  --port <port>           Host port (default: %d)\n"
+			"  --nthreads <number>     Concurrent thread number (default: %d)\n"
+			"  --conns <number>        Number of connections per thread (default: %d)\n"
+			"  --requests <number>     Number of requests per connection (default: %d)\n"
 			"  --max-recvs <size>      Max recv data size (default: %s)\n"
 			"\n"
-			, prog, bench_host, bench_port, bench_nthreads, bench_requests, maxrecvs);
+			, prog, bench_host, bench_port, bench_nthreads, bench_prethread_conns, bench_preconn_requests, maxrecvs);
 
 	free(maxrecvs);
 }
 /* }}} */
 
 int main(int argc, char *argv[]) {
+#ifdef HAVE_SIGNAL_H
+#if defined(SIGPIPE) && defined(SIG_IGN)
+	signal(SIGPIPE, SIG_IGN);
+#endif
+#if defined(SIGCHLD) && defined(SIG_IGN)
+	signal(SIGCHLD,SIG_IGN);
+#endif
+#endif
+
 	int exit_status = 0;
 	int c,i,j;
 	/* temporary locals */
@@ -110,8 +125,11 @@ int main(int argc, char *argv[]) {
 			case OPT_NTHREADS:
 				bench_nthreads=atoi(bench_optarg);
 				break;
+			case OPT_CONNS:
+				bench_prethread_conns=atoi(bench_optarg);
+				break;
 			case OPT_REQUESTS:
-				bench_requests=atoi(bench_optarg);
+				bench_preconn_requests=atoi(bench_optarg);
 				break;
 			case OPT_MAX_RECVS:
 				bench_maxrecvs=atoi(bench_optarg);

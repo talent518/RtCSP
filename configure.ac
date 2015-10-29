@@ -36,7 +36,7 @@ AC_CHECK_FUNCS([bzero getcwd gettimeofday memchr memset socket strchr strdup str
 
 sinclude(acinclude.m4)
 
-CFLAGS="$CFLAGS -w"
+CFLAGS="$CFLAGS -lstdc++ -w"
 
 AC_ARG_ENABLE(debug, [  --enable-debug turn on debug], CFLAGS="-g -O0 -Wall -DDEBUG")
 AC_ARG_ENABLE(debuginfo, [  --enable-debuginfo turn on debug conn info], CFLAGS="-g -O0 -Wall -DDEBUG_INFO")
