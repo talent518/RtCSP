@@ -7,7 +7,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-double microtime()
+inline double microtime()
 {
 	struct timeval tp = {0};
 
@@ -18,7 +18,7 @@ double microtime()
 	return tp.tv_sec + ((double)tp.tv_usec / 1000000);
 }
 
-char *fsize(int size)
+inline char *fsize(int size)
 {
 	char units[5][3]={"B","KB","MB","GB","TB"};
 	char buf[10];
@@ -34,65 +34,7 @@ char *fsize(int size)
 	return strdup(buf);
 }
 
-char *gad(const char *argv0)
-{
-	char *bpath;
-	bpath=(char *)malloc(255);
-	strncpy(bpath,argv0,strrchr(argv0,'/')-argv0);
-	if (*bpath=='.')
-	{
-		char *path,*q,*p;
-
-		path=(char *)malloc(255);
-		getcwd(path,255);
-
-		if (*(bpath+1)=='.')
-		{
-			strcat(path,"/");
-			strcat(path,bpath);
-			strcat(path,"\0");
-		}
-		else
-		{
-			strcat(path,bpath+1);
-		}
-
-		while ((p=strstr(path,"..")))
-		{
-			q=p-1;
-			do
-			{
-				q--;
-			}
-			while (q>path && *q!='/');
-			q++;
-			p+=3;
-			while (q>path && q<path+255)
-			{
-				if (*p!=0)
-				{
-					if (p==path+254)
-					{
-						*p=0;
-					}
-				}
-				*q=*p;
-				q++;
-				if (*p!=0)
-				{
-					p++;
-				}
-			}
-		}
-		return path;
-	}
-	else
-	{
-		return bpath;
-	}
-}
-
-int execi(const char *cmd)
+inline int execi(const char *cmd)
 {
 	FILE *fp;
 	int ret=0;
@@ -105,7 +47,7 @@ int execi(const char *cmd)
 	return ret;
 }
 
-char *str_repeat(const char *str,size_t str_len,size_t repeat)
+inline char *str_repeat(const char *str,size_t str_len,size_t repeat)
 {
 	char *ret=(char *)malloc(str_len*repeat);
 	size_t i;
@@ -116,7 +58,7 @@ char *str_repeat(const char *str,size_t str_len,size_t repeat)
 	return ret;
 }
 
-void strnprint(const char *str,size_t repeat)
+inline void strnprint(const char *str,size_t repeat)
 {
 	size_t i;
 	for (i=0;i<repeat;i++)

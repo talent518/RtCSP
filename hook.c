@@ -12,21 +12,25 @@ typedef struct
 
 serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse receive hook key");
 
-void hook_thread_init(worker_thread_t *thread) {
+inline void hook_thread_init(worker_thread_t *thread) {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->thread_init(thread);
+		if(rtcsp_modules[i]->thread_init) {
+			rtcsp_modules[i]->thread_init(thread);
+		}
 	}
 }
 
-void hook_thread_destory(worker_thread_t *thread) {
+inline void hook_thread_destory(worker_thread_t *thread) {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->thread_destory(thread);
+		if(rtcsp_modules[i]->thread_destory) {
+			rtcsp_modules[i]->thread_destory(thread);
+		}
 	}
 }
 
-void hook_start() {
+inline void hook_start() {
 	int i,j;
 	conn_recv_t *ptr;
 	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
@@ -39,23 +43,24 @@ void hook_start() {
 				g_hash_table_insert(ht_conn_recvs,ptr->key,ptr->call);
 			}
 		}
-	}
-
-	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->start();
+		if(rtcsp_modules[i]->start) {
+			rtcsp_modules[i]->start();
+		}
 	}
 }
 
-void hook_stop() {
+inline void hook_stop() {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->stop();
+		if(rtcsp_modules[i]->stop) {
+			rtcsp_modules[i]->stop();
+		}
 	}
 
 	g_hash_table_destroy(ht_conn_recvs);
 }
 
-bool hook_conn_accept(conn_t *ptr) {
+inline bool hook_conn_accept(conn_t *ptr) {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
 		if(rtcsp_modules[i]->conn_accept && !rtcsp_modules[i]->conn_accept(ptr)) {
@@ -66,14 +71,16 @@ bool hook_conn_accept(conn_t *ptr) {
 	return true;
 }
 
-void hook_conn_close(conn_t *ptr) {
+inline void hook_conn_close(conn_t *ptr) {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->conn_close(ptr);
+		if(rtcsp_modules[i]->conn_close) {
+			rtcsp_modules[i]->conn_close(ptr);
+		}
 	}
 }
 
-void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
+inline void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 	conn_recv_func_t call;
 	unsigned int tmplen;
 	srl_hash_t hkey = {NULL, 0};
@@ -106,9 +113,11 @@ void hook_conn_recv(conn_t *ptr,const char *data, int data_len) {
 	free(gstr.str);
 }
 
-void hook_conn_denied(conn_t *ptr) {
+inline void hook_conn_denied(conn_t *ptr) {
 	int i;
 	for(i=0;i<rtcsp_length;i++) {
-		rtcsp_modules[i]->conn_denied(ptr);
+		if(rtcsp_modules[i]->conn_denied) {
+			rtcsp_modules[i]->conn_denied(ptr);
+		}
 	}
 }

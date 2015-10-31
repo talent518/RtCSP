@@ -41,6 +41,7 @@ typedef struct _conn_t{
 	struct event event;
 } conn_t;
 
+typedef void (*server_func_t)(void);
 typedef bool (*conn_send_func_t)(conn_t *, GString *);
 typedef bool (*conn_recv_func_t)(conn_t *, const char *, int);
 
@@ -60,6 +61,7 @@ typedef struct
 
 typedef struct
 {
+	server_func_t start,stop;
 	conn_send_recv_t *recvs;
 	unsigned int recvs_len;
 } bench_module_t;

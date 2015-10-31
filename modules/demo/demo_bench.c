@@ -26,11 +26,21 @@ bool demo_profile_response(conn_t *ptr, const char *data, int datalen) {
 	return true;
 }
 
+void demo_start() {
+	printf("%s...\n",__func__);
+}
+
+void demo_stop() {
+	printf("%s...\n",__func__);
+}
+
 conn_send_recv_t demo_recvs[]={
 	{"demo.user", sizeof("demo.user")-1, demo_user_request, demo_user_response},
 	{"demo.profile", sizeof("demo.profile")-1, demo_profile_request, demo_profile_response}
 };
 bench_module_t demo_module={
+	demo_start,
+	demo_stop,
 	demo_recvs,
 	sizeof(demo_recvs)/sizeof(conn_send_recv_t)
 };

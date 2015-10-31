@@ -502,10 +502,22 @@ void loop_event() {
 		exit(1);
 	}
 
-	char chr[1] = {'b'};
-	write(main_thread.write_fd, chr, 1);
+	for(i=0;i<bench_length;i++) {
+		if(bench_modules[i]->start) {
+			bench_modules[i]->start();
+		}
+	}
+
+	char chr = 'b';
+	write(main_thread.write_fd, &chr, 1);
 
 	event_base_loop(main_thread.base, 0);
+
+	for(i=0;i<bench_length;i++) {
+		if(bench_modules[i]->stop) {
+			bench_modules[i]->stop();
+		}
+	}
 
 	event_del(&main_thread.notify_ev);
 	event_del(&main_thread.timeout_int);

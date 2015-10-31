@@ -14,15 +14,13 @@
 #define tput_cols() execi("tput cols")
 #define tput_lines() execi("tput lines")
 
-double microtime();
+inline double microtime();
 
-char *fsize(int size);
+inline char *fsize(int size);
 
-char *gad(const char *argv0);
+inline int execi(const char *cmd);
 
-int execi(const char *cmd);
-
-char *str_repeat(const char *str,size_t str_len,size_t repeat);
-void strnprint(const char *str,size_t repeat);
+inline char *str_repeat(const char *str,size_t str_len,size_t repeat);
+inline void strnprint(const char *str,size_t repeat);
 
 #endif
