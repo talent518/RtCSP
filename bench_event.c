@@ -239,6 +239,25 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 	}
 }
 
+static inline void send_recv_call() {
+	unsigned int i;
+
+	send_recv->run_time = 0;
+	send_recv->cause_close_conn_num = 0;
+	send_recv->requests = 0;
+	send_recv->ok_requests = 0;
+	send_recv->throughput_requests = 0;
+	send_recv->throughput_ok_requests = 0;
+	for(i=0; i<bench_nthreads; i++) {
+		send_recv->run_time = max(worker_threads[i].run_time,send_recv->run_time);
+		send_recv->cause_close_conn_num += (worker_threads[i].close_conn_num - worker_threads[i].preclose_conn_num);
+		send_recv->requests += worker_threads[i].requests;
+		send_recv->ok_requests += worker_threads[i].ok_requests;
+		send_recv->throughput_requests += (worker_threads[i].requests/worker_threads[i].run_time);
+		send_recv->throughput_ok_requests += (worker_threads[i].ok_requests/worker_threads[i].run_time);
+	}
+}
+
 static void main_notify_handler(const int fd, const short which, void *arg)
 {
 	unsigned int i;
@@ -262,20 +281,7 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 					main_thread.cthreads = 0;
 				}
 
-				send_recv->run_time = 0;
-				send_recv->cause_close_conn_num = 0;
-				send_recv->requests = 0;
-				send_recv->ok_requests = 0;
-				send_recv->throughput_requests = 0;
-				send_recv->throughput_ok_requests = 0;
-				for(i=0; i<bench_nthreads; i++) {
-					send_recv->run_time += worker_threads[i].run_time;
-					send_recv->cause_close_conn_num += (worker_threads[i].close_conn_num - worker_threads[i].preclose_conn_num);
-					send_recv->requests += worker_threads[i].requests;
-					send_recv->ok_requests += worker_threads[i].ok_requests;
-					send_recv->throughput_requests += (worker_threads[i].requests/worker_threads[i].run_time);
-					send_recv->throughput_ok_requests += (worker_threads[i].ok_requests/worker_threads[i].run_time);
-				}
+				send_recv_call();
 
 				if((++main_thread.send_recv_id) < bench_modules[main_thread.modid]->recvs_len) {
 				} else if((++main_thread.modid) < bench_length) {
@@ -346,10 +352,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 	pthread_mutex_unlock(&init_lock);
 
 	if(send_recv) {
-		send_recv->run_time = 0;
-		for(i=0; i<bench_nthreads; i++) {
-			send_recv->run_time += worker_threads[i].run_time;
-		}
+		send_recv_call();
 	}
 
 	dprintf("%s: exit main thread\n", __func__);
