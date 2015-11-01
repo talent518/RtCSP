@@ -1,6 +1,6 @@
 bin_PROGRAMS = rtcspd rtcspb
 
-rtcspd_SOURCES = RtCSP.c server.c loop_event.c hook.c socket.c conn.c serialize.c queue.c api.c getopt.c hook_internal.c
+rtcspd_SOURCES = RtCSP.c server.c loop_event.c socket.c conn.c serialize.c queue.c api.c getopt.c internal.c
 rtcspd_CFLAGS = -DHAVE_RTCSP
 rtcspd_LDADD = @extldadd@ @extlibadd@
 rtcspd_LDFLAGS = 

@@ -6,12 +6,13 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <glib.h>
 
 #include "api.h"
 #include "RtCSP.h"
 #include "conn.h"
 #include "loop_event.h"
-#include "hook.h"
+#include "serialize.h"
 
 static pthread_mutex_t init_lock, conn_lock;
 static pthread_cond_t init_cond;
@@ -20,6 +21,25 @@ int rtcsp_nthreads;
 
 listen_thread_t listen_thread;
 worker_thread_t *worker_threads;
+
+GHashTable *ht_conn_recvs = NULL;
+
+typedef struct
+{
+	char *key;
+	unsigned int keylen;
+} srl_hash_t;
+
+static serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse receive hook key");
+
+inline void hook_conn_close(conn_t *ptr) {
+	int i;
+	for(i=0;i<rtcsp_length;i++) {
+		if(rtcsp_modules[i]->conn_close) {
+			rtcsp_modules[i]->conn_close(ptr);
+		}
+	}
+}
 
 static void listen_handler(const int fd, const short which, void *arg);
 bool update_accept_event(short new_flags) {
@@ -70,7 +90,12 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d created\n", me->id);
 
-	hook_thread_init(me);
+	unsigned int i;
+	for(i=0;i<rtcsp_length;i++) {
+		if(rtcsp_modules[i]->thread_init) {
+			rtcsp_modules[i]->thread_init(me);
+		}
+	}
 
     pthread_mutex_lock(&init_lock);
     listen_thread.nthreads++;
@@ -79,7 +104,11 @@ static void *worker_thread_handler(void *arg)
 
 	event_base_loop(me->base, 0);
 
-	hook_thread_destory(me);
+	for(i=0;i<rtcsp_length;i++) {
+		if(rtcsp_modules[i]->thread_destory) {
+			rtcsp_modules[i]->thread_destory(me);
+		}
+	}
 
 	event_del(&me->event);
 	event_base_free(me->base);
@@ -129,8 +158,38 @@ static void read_handler(int sock, short event,	void* arg)
 
 		is_accept_conn(true);
 	} else {//接收数据成功
-		hook_conn_recv(ptr,data,data_len);
+		conn_recv_func_t call;
+		unsigned int tmplen;
+		srl_hash_t hkey = {NULL, 0};
+		
+		tmplen = serialize_parse((void*)&hkey, &hformat, data, data_len);
+		if(!tmplen) {
+			fprintf(stderr, "Parse receive hook key failed(%s).\n", data);
+			if(hkey.key) {
+				free(hkey.key);
+			}
+			goto end_read;
+		}
+
+		call = g_hash_table_lookup(ht_conn_recvs,hkey.key);
+		if(!call) {
+			fprintf(stderr, "Connection receive hook (%s) not exists.\n", hkey.key);
+			free(hkey.key);
+			goto end_read;
+		}
+
+		GString gstr = {NULL,0,0};
+
+		g_string_append_len(&gstr, data, tmplen);
+
+		if(call(ptr, data+tmplen, data_len-tmplen, &gstr)) {
+			socket_send(ptr, gstr.str, gstr.len);
+		}
+
+		free(hkey.key);
+		free(gstr.str);
 	}
+end_read:
 	if(data) {
 		free(data);
 	}
@@ -272,6 +331,7 @@ static void listen_notify_handler(const int fd, const short which, void *arg)
 
 static void listen_handler(const int fd, const short which, void *arg)
 {
+	unsigned int i;
 	int conn_fd, ret;
 	struct sockaddr_in pin;
 	socklen_t len = sizeof(pin);
@@ -298,7 +358,12 @@ static void listen_handler(const int fd, const short which, void *arg)
 
 		conn_info(ptr);
 
-		hook_conn_denied(ptr);
+		for(i=0;i<rtcsp_length;i++) {
+			if(rtcsp_modules[i]->conn_denied) {
+				rtcsp_modules[i]->conn_denied(ptr);
+			}
+		}
+
 		clean_conn(ptr);
 
 		free(ptr);
@@ -309,7 +374,15 @@ static void listen_handler(const int fd, const short which, void *arg)
 
 		ptr->thread = thread;
 
-		if(hook_conn_accept(ptr)) {
+		bool flag = true;
+		for(i=0;i<rtcsp_length;i++) {
+			if(rtcsp_modules[i]->conn_accept && !rtcsp_modules[i]->conn_accept(ptr)) {
+				flag = false;
+				break;
+			}
+		}
+
+		if(flag) {
 			queue_push(thread->accept_queue, ptr);
 
 			conn_info(ptr);
@@ -331,7 +404,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 
 	is_accept_conn_ex(false);
 
-	int i;
+	unsigned int i;
 	char chr = '-';
 	for(i=0; i<rtcsp_nthreads; i++) {
 		dprintf("%s: notify thread exit %d\n", __func__, i);
@@ -417,7 +490,22 @@ void loop_event (int sockfd) {
 
 	attach_conn();
 
-	hook_start();
+	unsigned int i,j;
+	conn_recv_t *ptr;
+	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
+	for(i=0;i<rtcsp_length;i++) {
+		for(j=0;j<rtcsp_modules[i]->conn_recv_len;j++) {
+			ptr = &(rtcsp_modules[i]->conn_recvs[j]);
+			if(g_hash_table_lookup(ht_conn_recvs,ptr->key)) {
+				fprintf(stderr, "Connection receive hook (%s->%s) is exists.\n", rtcsp_names[i], ptr->key);
+			} else {
+				g_hash_table_insert(ht_conn_recvs,ptr->key,ptr->call);
+			}
+		}
+		if(rtcsp_modules[i]->start) {
+			rtcsp_modules[i]->start();
+		}
+	}
 
 	event_base_loop(listen_thread.base, 0);
 
@@ -428,7 +516,13 @@ void loop_event (int sockfd) {
 
 	free(worker_threads);
 
-	hook_stop();
+	for(i=0;i<rtcsp_length;i++) {
+		if(rtcsp_modules[i]->stop) {
+			rtcsp_modules[i]->stop();
+		}
+	}
+
+	g_hash_table_destroy(ht_conn_recvs);
 
 	shutdown(sockfd, 2);
 	close(sockfd);

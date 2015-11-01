@@ -186,7 +186,7 @@ EOF
 ])
 
 AC_DEFUN([RTCSP_MAKE_MODULE],[
-	cat hook_internal.c.in | sed -e "s'@extincludes@'$extincludes'" -e "s'@extnames@'$extnames'" -e "s'@extmodules@'$extmodules'" -e "s'@extlength@'$extsize'" > hook_internal.c
+	cat internal.c.in | sed -e "s'@extincludes@'$extincludes'" -e "s'@extnames@'$extnames'" -e "s'@extmodules@'$extmodules'" -e "s'@extlength@'$extsize'" > internal.c
 	cat bench_internal.c.in | sed -e "s'@extbenchincludes@'$extbenchincludes'" -e "s'@extbenchnames@'$extbenchnames'" -e "s'@extbenchmodules@'$extbenchmodules'" -e "s'@extbenchlength@'$extbenchsize'" > bench_internal.c
 
 	sed -e "s'@extheaders@'$extheaders'" -e "s'@extldadd@'$extldadd'" -e "s'@extbenchldadd@'$extbenchldadd'" -e "s'@extlibadd@'$extlibadd'" -e "s'@extbenchlibadd@'$extbenchlibadd'" -e "s'@extstatics@'$extstatics'" -e "s'@extdynamics@'$extdynamics'" -i Makefile.am
