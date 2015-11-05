@@ -20,8 +20,8 @@ autoconf && \
 libtoolize --automake --copy --debug --force 2> /dev/null > /dev/null && \
 automake --add-missing --foreign 2> /dev/null
 
-if test -d "/opt/ssp"; then
-	./configure --with-libevent=/opt/ssp $*
+if test "$1"; then
+	./configure --with-libevent=/usr/local --with-glib=/usr/local
 	exit $?
 fi
 
