@@ -308,7 +308,7 @@ static void listen_notify_handler(const int fd, const short which, void *arg)
 
 	assert(fd == listen_thread.read_fd);
 
-	buf_len = read(fd, buf, 1024);
+	buf_len = read(fd, buf, sizeof(buf));
 	if (buf_len <= 0) {
 		return;
 	}

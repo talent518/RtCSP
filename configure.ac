@@ -53,11 +53,12 @@ AC_ARG_WITH(glib, [  --with-glib=DIR         where to find the glib-2.0 library,
 RTCSP_ADD_INCLUDE($with_glib/include/glib-2.0)
 RTCSP_ADD_INCLUDE($with_glib/lib/glib-2.0/include)
 RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
+PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.40.0)
 
 AC_CHECK_LIB([m], pow,,[AC_MSG_ERROR([math support requested, but not found])])
 AC_CHECK_LIB([pthread], pthread_create,,[AC_MSG_ERROR([libpthread support requested, but not found])])
 AC_CHECK_LIB([event], event_base_loop,,[AC_MSG_ERROR([libevent support requested, but not found])])
-AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([glib-2.0 support requested, but not found])])
+AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([>= glib-2.40.0 support requested, but not found])])
 
 \cp Makefile.am.in Makefile.am
 

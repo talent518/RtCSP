@@ -60,6 +60,7 @@ AC_DEFUN([RTCSP_ADD_LIBRARY_WITH_PATH],[
 	if test "$1" != "/usr/lib"; then
 		RTCSP_EXPAND_PATH($1, ai_p)
 		RTCSP_RUN_ONCE(LIBRARYPATH, $ai_p, [
+			export PKG_CONFIG_PATH="$ai_p/pkgconfig:$PKG_CONFIG_PATH"
 			if test "$2"; then
 				LDFLAGS="-L$ai_p -Wl,-rpath,$ai_p $LDFLAGS"
 			else
