@@ -29,6 +29,7 @@ static pthread_mutex_t init_lock, conn_lock;
 static pthread_cond_t init_cond;
 
 static void signal_handler(const int fd, short event, void *arg);
+static void timeout_req_handler(const int fd, short event, void *arg);
 
 void send_request(conn_t *ptr) {
 	GString gstr = {NULL, 0, 0};
@@ -117,43 +118,11 @@ sendnext:
 
 static void *worker_thread_handler(void *arg)
 {
-	unsigned int i,j;
 	conn_t *ptr;
 	worker_thread_t *me = (worker_thread_t*)arg;
 	me->tid = pthread_self();
 
 	dprintf("thread %d created\n", me->id);
-
-	me->conns = (conn_t**)malloc(sizeof(conn_t*)*bench_prethread_conns);
-	me->conn_num = 0;
-
-	dprintf("thread %d socket connectting...\n", me->id);
-	me->tmp_time = microtime();
-	for(i=0; i<bench_prethread_conns; i++) {
-		j = 0;
-		do
-		{
-			j++;
-			ptr = socket_connect(bench_host, bench_port);
-		}
-		while (!ptr && j<3);
-
-		if(ptr) {
-			ptr->tid = me->id;
-			ptr->index = me->conn_num;
-			
-			event_set(&ptr->event, ptr->sockfd, EV_READ|EV_PERSIST, read_handler, ptr);
-			event_base_set(me->base, &ptr->event);
-			event_add(&ptr->event, NULL);
-
-			me->conns[ptr->index] = ptr;
-			me->conn_num++;
-
-			__sync_fetch_and_add(&main_thread.conn_num, 1);
-		}
-	}
-	me->conn_time = microtime() - me->tmp_time;
-	dprintf("thread %d connect success(%d), fail(%d), runtime(%.3lfs)\n", me->id, me->conn_num, bench_prethread_conns - me->conn_num, me->conn_time);
 
 	pthread_mutex_lock(&init_lock);
 	main_thread.nthreads++;
@@ -161,23 +130,6 @@ static void *worker_thread_handler(void *arg)
 	pthread_mutex_unlock(&init_lock);
 
 	event_base_loop(me->base, 0);
-	
-	dprintf("thread %d socket closing...\n", me->id);
-	me->tmp_time = microtime();
-	for(i=0; i<me->conn_num; i++) {
-		if(!me->conns[i]) {
-			continue;
-		}
-
-		socket_close(me->conns[i]);
-
-		free(me->conns[i]);
-		me->conns[i] = NULL;
-	}
-	me->close_conn_time = microtime() - me->tmp_time;
-	dprintf("thread %d socket closed runtime(%.3fs)\n", me->id, me->close_conn_time);
-
-	free(me->conns);
 
 	event_del(&me->event);
 	event_base_free(me->base);
@@ -230,8 +182,61 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 				}
 			}
 			break;
-		case '-':
+		case 'c': // create connection
+			me->conns = (conn_t**)malloc(sizeof(conn_t*)*bench_prethread_conns);
+			me->conn_num = 0;
+
+			dprintf("thread %d socket connectting...\n", me->id);
+			me->tmp_time = microtime();
+			for(i=0; i<bench_prethread_conns; i++) {
+				int j = 0;
+				do
+				{
+					j++;
+					ptr = socket_connect(bench_host, bench_port);
+				}
+				while (!ptr && j<3);
+
+				if(ptr) {
+					ptr->tid = me->id;
+					ptr->index = me->conn_num;
+					
+					event_set(&ptr->event, ptr->sockfd, EV_READ|EV_PERSIST, read_handler, ptr);
+					event_base_set(me->base, &ptr->event);
+					event_add(&ptr->event, NULL);
+
+					me->conns[ptr->index] = ptr;
+					me->conn_num++;
+
+					__sync_fetch_and_add(&main_thread.conn_num, 1);
+				}
+			}
+			me->conn_time = microtime() - me->tmp_time;
+			dprintf("thread %d connect success(%d), fail(%d), runtime(%.3lfs)\n", me->id, me->conn_num, bench_prethread_conns - me->conn_num, me->conn_time);
+			write(main_thread.write_fd, &chr, 1);
+			break;
+		case '-': // break thread
 			me->run_time = microtime() - me->tmp_time;
+
+			// close connection
+			dprintf("thread %d socket closing...\n", me->id);
+			me->tmp_time = microtime();
+			for(i=0; i<me->conn_num; i++) {
+				if(!me->conns[i]) {
+					continue;
+				}
+
+				socket_close(me->conns[i]);
+
+				free(me->conns[i]);
+				me->conns[i] = NULL;
+			}
+			me->close_conn_time = microtime() - me->tmp_time;
+			dprintf("thread %d socket closed runtime(%.3fs)\n", me->id, me->close_conn_time);
+
+			free(me->conns);
+
+			// break event loop
 			event_base_loopbreak(me->base);
 			break;
 		default:
@@ -304,11 +309,47 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 					write(worker_threads[i].write_fd, &buf[c], 1);
 				}
 				break;
+			case 'c': // create connection for worker thread
+				if((++main_thread.cthreads) < bench_nthreads) {
+					break;
+				}
+
+				main_thread.run_time = microtime() - main_thread.tmp_time;
+				printf("connection: total(%d), runtime(%.3f second), avg(%.3f/s)\n", main_thread.conn_num, main_thread.run_time, (double)(main_thread.conn_num)/main_thread.run_time);
+
+				main_thread.cthreads = 0;
+				main_thread.seconds = 0;
+				buf[c] = 'b';
+				c--;
+
+				// rebind timeout event
+				if (event_del(&main_thread.timeout_int) == -1) {
+					fprintf(stderr, "Rebind timeout event error.\n");
+					signal_handler(0, 0, NULL);
+					return;
+				}
+				do {
+					struct timeval tv;
+					evutil_timerclear(&tv);
+					tv.tv_sec = 1;
+					event_set(&main_thread.timeout_int, -1, EV_PERSIST, timeout_req_handler, NULL);
+					event_base_set(main_thread.base, &main_thread.timeout_int);
+					if (event_add(&main_thread.timeout_int, &tv) == -1) {
+						perror("rebind timeout event");
+						exit(1);
+					}
+				} while(0);
+				break;
 		}
 	}
 }
 
 static void timeout_handler(const int fd, short event, void *arg) {
+	main_thread.seconds++;
+	printf("seconds(%06d), connections(%d), connection_avg(%.3f)\n", main_thread.seconds, main_thread.conn_num, (float)(main_thread.conn_num)/(float)(main_thread.seconds));
+}
+
+static void timeout_req_handler(const int fd, short event, void *arg) {
 	unsigned int requests = __sync_lock_test_and_set(&main_thread.requests, 0);
 	unsigned int ok_requests = __sync_lock_test_and_set(&main_thread.ok_requests, 0);
 	float count = (main_thread.second_requests[main_thread.current_request_index] ? AVG_SECONDS : main_thread.current_request_index+1);
@@ -325,7 +366,7 @@ static void timeout_handler(const int fd, short event, void *arg) {
 	main_thread.max_requests = max(main_thread.max_requests, requests);
 	main_thread.max_ok_requests = max(main_thread.max_ok_requests, ok_requests);
 
-	printf("send_recv(%s), connections(%d), requests(%d): (%d/%d) min(%d/%d) max(%d/%d) avg(%.3f/%.3f)\n", send_recv->key, main_thread.conn_num, main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
+	printf("seconds(%06d), send_recv(%s), connections(%d), requests(%d): (%d/%d) min(%d/%d) max(%d/%d) avg(%.3f/%.3f)\n", main_thread.seconds++, send_recv->key, main_thread.conn_num, main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
 
 	main_thread.second_requests[main_thread.current_request_index] = requests;
 	main_thread.second_ok_requests[main_thread.current_request_index] = ok_requests;
@@ -456,6 +497,7 @@ void loop_event() {
 	main_thread.modid = 0;
 	main_thread.send_recv_id = 0;
 	main_thread.cthreads = 0;
+	main_thread.seconds = 0;
 
 	unsigned int i;
 	for(i=0; i<AVG_SECONDS; i++) {
@@ -508,8 +550,11 @@ void loop_event() {
 		}
 	}
 
-	char chr = 'b';
-	write(main_thread.write_fd, &chr, 1);
+	main_thread.tmp_time = microtime();
+	char chr='c';
+	for(i=0; i<bench_nthreads; i++) {
+		write(worker_threads[i].write_fd, &chr, 1);
+	}
 
 	event_base_loop(main_thread.base, 0);
 

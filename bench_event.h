@@ -22,10 +22,10 @@ typedef struct
 	int read_fd;
 	int write_fd;
 
-	unsigned int cthreads;
-	unsigned int modid;
-	unsigned int send_recv_id;
-	conn_send_recv_t *send_recv;
+	unsigned int cthreads; // 完成处理的线程数
+	unsigned int modid; // 模块ID
+	unsigned int send_recv_id; // 发送与接收的句柄ID
+	conn_send_recv_t *send_recv; // 发送与接收的句柄指针
 
 	volatile unsigned int conn_num; // 当前连接数
 
@@ -37,6 +37,9 @@ typedef struct
 	unsigned int max_requests, max_ok_requests; // 最大值
 
 	volatile unsigned int requests,ok_requests; // 当前秒的请求数/成功数的值
+	unsigned int seconds;
+
+	double tmp_time,run_time;
 } main_thread_t;
 
 typedef struct
@@ -52,9 +55,9 @@ typedef struct
 	conn_t **conns;
 	unsigned int conn_num;
 
-	unsigned int complete_conn_num;
-	unsigned int close_conn_num;
-	unsigned int preclose_conn_num;
+	unsigned int complete_conn_num; // 完成的连接数
+	unsigned int close_conn_num; // 关闭的连接数
+	unsigned int preclose_conn_num; // 连接失败数
 
 	unsigned int requests,ok_requests;
 
