@@ -35,7 +35,7 @@ int server_start()
 	int listen_fd;
 	int ret;
 
-	int pid,i=19,cols=tput_cols();
+	int pid,i=21,cols=tput_cols();
 
 	printf("Starting RtCSP server");
 	strnprint(".",cols-i-9);
@@ -156,7 +156,7 @@ int server_start()
 int server_stop()
 {
 	FILE *fp;
-	int pid,i=19,cols=tput_cols();
+	int pid,i=21,cols=tput_cols();
 
 	printf("Stopping RtCSP server");
 	flush();
@@ -199,7 +199,7 @@ int server_stop()
 int server_status()
 {
 	FILE *fp;
-	int pid,i=17,cols=tput_cols();
+	int pid,i=19,cols=tput_cols();
 
 	printf("RtCSP server status");
 	strnprint(".",cols-i-9);
