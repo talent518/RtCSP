@@ -460,9 +460,6 @@ void loop_event (int sockfd) {
 	listen_thread.read_fd = fds[0];
 	listen_thread.write_fd = fds[1];
 
-	// init notify thread
-	thread_init();
-
 	// listen notify event
 	event_set(&listen_thread.notify_ev, listen_thread.read_fd, EV_READ | EV_PERSIST, listen_notify_handler, NULL);
 	event_base_set(listen_thread.base, &listen_thread.notify_ev);
@@ -506,6 +503,9 @@ void loop_event (int sockfd) {
 			rtcsp_modules[i]->start();
 		}
 	}
+
+	// init notify thread
+	thread_init();
 
 	event_base_loop(listen_thread.base, 0);
 

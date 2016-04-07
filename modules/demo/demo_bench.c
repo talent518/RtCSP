@@ -2,26 +2,27 @@
 #include <stdbool.h>
 #include "mod_bench_demo.h"
 
-bool demo_user_request(conn_t *ptr, GString *gstr) {
+bool demo_string_request(conn_t *ptr, GString *gstr) {
 	g_string_append_printf(gstr, "%s...",__func__);
 
 	return true;
 }
 
-bool demo_user_response(conn_t *ptr, const char *data, int datalen) {
+bool demo_string_response(conn_t *ptr, const char *data, int datalen) {
 	//printf("%s...(%d: %s)\n",__func__, datalen, data);
 
 	return true;
 }
 
-bool demo_profile_request(conn_t *ptr, GString *gstr) {
-	g_string_append_printf(gstr, "%s...",__func__);
+bool demo_mysql_request(conn_t *ptr, GString *gstr) {
+	g_string_append_printf(gstr, "SHOW TABLES");
 
 	return true;
 }
 
-bool demo_profile_response(conn_t *ptr, const char *data, int datalen) {
-	//printf("%s...(%d: %s)\n",__func__, datalen, data);
+bool demo_mysql_response(conn_t *ptr, const char *data, int datalen) {
+	//printf("%s...(%d)\n",__func__, datalen);
+	//printf("%s", data);
 
 	return true;
 }
@@ -35,8 +36,8 @@ void demo_stop() {
 }
 
 conn_send_recv_t demo_recvs[]={
-	{"demo.user", sizeof("demo.user")-1, demo_user_request, demo_user_response},
-	{"demo.profile", sizeof("demo.profile")-1, demo_profile_request, demo_profile_response}
+	{"demo.string", sizeof("demo.string")-1, demo_string_request, demo_string_response},
+	{"demo.mysql", sizeof("demo.mysql")-1, demo_mysql_request, demo_mysql_response}
 };
 bench_module_t demo_module={
 	demo_start,

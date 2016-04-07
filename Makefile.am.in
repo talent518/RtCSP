@@ -1,6 +1,6 @@
 bin_PROGRAMS = rtcspd rtcspb
 
-rtcspd_SOURCES = RtCSP.c server.c loop_event.c socket.c conn.c serialize.c queue.c api.c getopt.c internal.c
+rtcspd_SOURCES = RtCSP.c server.c loop_event.c socket.c conn.c serialize.c queue.c api.c getopt.c internal.c mod_my.c
 rtcspd_CFLAGS = -DHAVE_RTCSP
 rtcspd_LDADD = @extldadd@ @extlibadd@
 rtcspd_LDFLAGS = 
@@ -14,4 +14,4 @@ noinst_LIBRARIES = @extstatics@
 lib_LTLIBRARIES = @extdynamics@
 
 rtcspincludedir = $(includedir)/rtcsp
-rtcspinclude_HEADERS = bench.h RtCSP.h conn.h socket.h serialize.h queue.h api.h getopt.h config.h @extheaders@
+rtcspinclude_HEADERS = bench.h RtCSP.h conn.h socket.h serialize.h queue.h api.h getopt.h config.h mod_my.h @extheaders@

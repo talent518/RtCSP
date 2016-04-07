@@ -1,6 +1,7 @@
 #include "RtCSP.h"
+#include "mod_my.h"
 @extincludes@
 
-int rtcsp_length = @extlength@;
-char *rtcsp_names[] = {@extnames@};
-rtcsp_module_t *rtcsp_modules[]={@extmodules@};
+int rtcsp_length = @extlength@+1;
+char *rtcsp_names[] = {"mod_my",@extnames@};
+rtcsp_module_t *rtcsp_modules[]={&mod_my_module,@extmodules@};

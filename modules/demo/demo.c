@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "mod_demo.h"
+#include "mod_my.h"
 
 bool demo_conn_accept(conn_t *ptr) {
 	conn_info_ex(ptr,"accept connection");
@@ -13,6 +14,7 @@ void demo_conn_close(conn_t *ptr) {
 }
 
 void demo_conn_denied(conn_t *ptr) {
+	conn_info_ex(ptr,"deined connection");
 }
 
 void demo_thread_init(worker_thread_t *thread) {
@@ -31,21 +33,36 @@ void demo_stop() {
 	printf("%s...\n",__func__);
 }
 
-bool demo_user(conn_t *ptr, const char *data, int datalen, GString *gstr) {
+bool demo_string(conn_t *ptr, const char *data, int datalen, GString *gstr) {
 	g_string_append_printf(gstr, "%s...(%d: %s)", __func__, datalen, data);
 
 	return true;
 }
 
-bool demo_profile(conn_t *ptr, const char *data, int datalen, GString *gstr) {
-	g_string_append_printf(gstr, "%s...(%d: %s)", __func__, datalen, data);
+bool demo_mysql(conn_t *ptr, const char *data, int datalen, GString *gstr) {
+	if (mysql_query(MOD_MY_CONN_PTR, data)) {
+		fprintf(stderr, "%s\n", mysql_error(MOD_MY_CONN_PTR));
+		return false;
+	}
+	
+	MYSQL_RES *res;
+	MYSQL_ROW row;
+	
+	res = mysql_use_result(MOD_MY_CONN_PTR);
+
+	while ((row = mysql_fetch_row(res)) != NULL) {
+   		g_string_append(gstr, row[0]);
+   		g_string_append_c(gstr, '\n');
+   	}
+
+	mysql_free_result(res);
 
 	return true;
 }
 
 conn_recv_t demo_recvs[]={
-	{"demo.user", demo_user},
-	{"demo.profile", demo_profile}
+	{"demo.string", demo_string},
+	{"demo.mysql", demo_mysql}
 };
 rtcsp_module_t demo_module={
 	demo_start,
