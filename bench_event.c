@@ -494,12 +494,32 @@ void loop_event() {
 	main_thread.read_fd = fds[0];
 	main_thread.write_fd = fds[1];
 
-	main_thread.modid = 0;
-	main_thread.send_recv_id = 0;
+	unsigned int i;
+	
+	int n = -1;
+	while(n<0 || n>=bench_length) {
+		printf("Module list:\n");
+		for(i=0; i<bench_length; i++) {
+			printf("    %d) %s\n", i, bench_names[i]);
+		}
+		printf("Please input a number for module id: ");
+		scanf("%d", &n);
+	}
+	main_thread.modid = n;
+	n = -1;
+	while(n<0 || n>=bench_modules[main_thread.modid]->recvs_len) {
+		printf("Recv list for module \"%s\":\n", bench_names[main_thread.modid]);
+		for(i=0; i<bench_modules[main_thread.modid]->recvs_len; i++) {
+			printf("    %d) %s\n", i, bench_modules[main_thread.modid]->recvs[i].key);
+		}
+		printf("Please input a number for recv id: ");
+		scanf("%d", &n);
+	}
+	main_thread.send_recv_id = n;
+
 	main_thread.cthreads = 0;
 	main_thread.seconds = 0;
-
-	unsigned int i;
+	
 	for(i=0; i<AVG_SECONDS; i++) {
 		main_thread.second_requests[i] = 0;
 		main_thread.second_ok_requests[i] = 0;
