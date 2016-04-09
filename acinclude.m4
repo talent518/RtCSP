@@ -129,7 +129,7 @@ AC_DEFUN([RTCSP_NEW_MODULE],[
 
 		cat >> Makefile.am <<EOF
 libmod_$1_la_SOURCES = $files
-libmod_$1_la_CFLAGS = -DHAVE_RTCSP $4
+libmod_$1_la_CFLAGS = -DHAVE_RTCSP -DSYS_CONF_DIR=\"\${sysconfdir}\" $4
 libmod_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -137,8 +137,9 @@ EOF
 		extldadd="$extldadd libmod_$1.a"
 
 		cat >> Makefile.am <<EOF
+
 libmod_$1_a_SOURCES = $files
-libmod_$1_a_CFLAGS = -DHAVE_RTCSP $4
+libmod_$1_a_CFLAGS = -DHAVE_RTCSP -DSYS_CONF_DIR=\"\${sysconfdir}\" $4
 EOF
 	fi
 ])
@@ -171,8 +172,9 @@ AC_DEFUN([RTCSP_NEW_MODULE_WITH_BENCH],[
 		extbenchlibadd="$extbenchlibadd libbench_$1.la"
 		
 		cat >> Makefile.am <<EOF
+
 libbench_$1_la_SOURCES = $files
-libbench_$1_la_CFLAGS = -DHAVE_BENCH $4
+libbench_$1_la_CFLAGS = -DHAVE_BENCH -DSYS_CONF_DIR=\"\${sysconfdir}\" $4
 libbench_$1_la_LDFLAGS = $no_undef $5
 EOF
 	else
@@ -181,7 +183,7 @@ EOF
 
 		cat >> Makefile.am <<EOF
 libbench_$1_a_SOURCES = $files
-libbench_$1_a_CFLAGS = -DHAVE_BENCH $4
+libbench_$1_a_CFLAGS = -DHAVE_BENCH -DSYS_CONF_DIR=\"\${sysconfdir}\" $4
 EOF
 	fi
 ])

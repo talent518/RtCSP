@@ -23,6 +23,7 @@ listen_thread_t listen_thread;
 worker_thread_t *worker_threads;
 
 GHashTable *ht_conn_recvs = NULL;
+GHashTable *ht_main_free = NULL;
 
 typedef struct
 {
@@ -112,6 +113,9 @@ static void *worker_thread_handler(void *arg)
 
 	event_del(&me->event);
 	event_base_free(me->base);
+
+	queue_free(me->accept_queue);
+	queue_free(me->close_queue);
 
     pthread_mutex_lock(&init_lock);
     listen_thread.nthreads--;
@@ -440,6 +444,12 @@ static void signal_handler(const int fd, short event, void *arg) {
 	event_base_loopbreak(listen_thread.base);
 }
 
+static int main_free(void *key, void (*func)(void*), void *user_data) {
+	func(key);
+	
+	return 1;
+}
+
 void loop_event (int sockfd) {
 	// init main thread
 	listen_thread.sockfd = sockfd;
@@ -487,6 +497,8 @@ void loop_event (int sockfd) {
 
 	attach_conn();
 
+	ht_main_free = g_hash_table_new(g_direct_hash, g_direct_equal);
+
 	unsigned int i,j;
 	conn_recv_t *ptr;
 	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
@@ -503,7 +515,7 @@ void loop_event (int sockfd) {
 			rtcsp_modules[i]->start();
 		}
 	}
-
+	
 	// init notify thread
 	thread_init();
 
@@ -512,17 +524,20 @@ void loop_event (int sockfd) {
 	event_del(&listen_thread.notify_ev);
 	event_del(&listen_thread.listen_ev);
 	event_del(&listen_thread.signal_int);
-	event_base_free(listen_thread.base);
-
-	free(worker_threads);
 
 	for(i=0;i<rtcsp_length;i++) {
 		if(rtcsp_modules[i]->stop) {
 			rtcsp_modules[i]->stop();
 		}
 	}
+	
+	event_base_free(listen_thread.base);
+
+	free(worker_threads);
 
 	g_hash_table_destroy(ht_conn_recvs);
+	g_hash_table_foreach_remove(ht_main_free, main_free, NULL);
+	g_hash_table_destroy(ht_main_free);
 
 	shutdown(sockfd, 2);
 	close(sockfd);

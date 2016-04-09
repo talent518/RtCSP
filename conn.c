@@ -155,10 +155,15 @@ void remove_conn(conn_t *ptr){
 	} END_WRITE_LOCK;
 }
 
+static void ifree(queue_item_t *item) {
+	free(item->data);
+	free(item);
+}
+
 void detach_conn(){
 	assert(iqueue);
 	BEGIN_WRITE_LOCK {
-		queue_free(iqueue);
+		queue_free_ex(iqueue, ifree);
 		iqueue=NULL;
 
 		free(iconns);

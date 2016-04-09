@@ -67,5 +67,6 @@ extern char *rtcsp_names[];
 extern rtcsp_module_t *rtcsp_modules[];
 
 extern GHashTable *ht_conn_recvs;
+extern GHashTable *ht_main_free;
 
 #endif

@@ -52,13 +52,14 @@ void *queue_pop(queue_t *queue) {
 	return data;
 }
 
-bool queue_free(queue_t *queue) {
+bool queue_free_ex(queue_t *queue, void (*free_func)(queue_item_t*)) {
 	queue_item_t *ptr=queue->head,*tmp;
 	while(ptr) {
 		tmp=ptr;
 		ptr=ptr->next;
-		free(tmp);
+		free_func(tmp);
 	}
 	pthread_mutex_destroy(&queue->lock);
 	free(queue);
 }
+

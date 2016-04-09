@@ -130,17 +130,17 @@ int main(int argc, char *argv[])
 		switch (c)
 		{
 			case OPT_HOST:
-				rtcsp_host=strdup(rtcsp_optarg);
+				rtcsp_host=rtcsp_optarg;
 				break;
 			case OPT_PORT:
 				rtcsp_port=atoi(rtcsp_optarg);
 				break;
 			case OPT_PIDFILE:
-				rtcsp_pidfile=strdup(rtcsp_optarg);
+				rtcsp_pidfile=rtcsp_optarg;
 				break;
 
 			case OPT_USER:
-				rtcsp_user = strdup(rtcsp_optarg);
+				rtcsp_user = rtcsp_optarg;
 				break;
 			case OPT_MAX_CLIENTS:
 				rtcsp_maxclients=atoi(rtcsp_optarg);
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case 's': /* service control */
-				serv_opt = strdup(rtcsp_optarg);
+				serv_opt = rtcsp_optarg;
 				break;
 			case 'H':
 				hide_argv = 1;
@@ -224,7 +224,6 @@ int main(int argc, char *argv[])
 		exit_status=1;
 		goto out;
 	}
-	free(serv_opt);
 
 	return 0;
 

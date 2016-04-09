@@ -21,6 +21,8 @@ typedef struct _queue_t
 queue_t *queue_init();
 void queue_push(queue_t *queue, void *data);
 void *queue_pop(queue_t *queue);
-bool queue_free(queue_t *queue);
+bool queue_free_ex(queue_t *queue, void (*free_func)(queue_item_t*));
+
+#define queue_free(ptr) queue_free_ex(ptr, free)
 
 #endif

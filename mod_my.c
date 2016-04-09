@@ -1,25 +1,37 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <mysql_version.h>
+#include <glib.h>
 #include "mod_my.h"
 #include "loop_event.h"
 
 char *mod_my_host = "localhost";
 char *mod_my_user = "root";
 char *mod_my_passwd = "1qazXSW23edc";
-char *mod_my_database = "mysql";//"rtcsp";
+char *mod_my_database = "rtcsp";
 unsigned int mod_my_port = 3306;
-char *mod_my_socket = "/opt/lampp/var/mysql/mysql.sock";//MYSQL_UNIX_ADDR;
+char *mod_my_socket = MYSQL_UNIX_ADDR;
 unsigned long mod_my_flags = CLIENT_COMPRESS | CLIENT_FOUND_ROWS | CLIENT_LOCAL_FILES;
 
 MYSQL **mod_my_conns;
 struct event *mod_my_events = NULL;
 static struct timeval tv;
 
+#define g_print_error(msg,cond,err) \
+	if(err) { \
+		if(cond) { \
+			fprintf(stderr, msg"code: %d\nmessage: %s\n", err->code, err->message); \
+		} \
+		g_error_free(err); \
+		err = NULL; \
+	}
+#define g_print_error_not(msg,noncode,err) g_print_error(msg,err->code!=noncode,err)
+#define g_print_error_eq(msg,eqcode,err) g_print_error(msg,err->code==eqcode,err)
+
 inline void mod_my_connect(int i) {
 	if (!mysql_real_connect(mod_my_conns[i], mod_my_host, mod_my_user, mod_my_passwd, mod_my_database, mod_my_port, mod_my_socket, mod_my_flags)) {
-		fprintf(stderr, "%s\n", mysql_error(mod_my_conns[i]));
-		return 1;
+		fprintf(stderr, "mysql connect error: %s\n", mysql_error(mod_my_conns[i]));
+		return;
 	}
 
 	char reconnect = 1;
@@ -64,7 +76,60 @@ void mod_my_thread_destory(worker_thread_t *thread) {
 }
 
 void mod_my_start() {
-	printf("%s...\n",__func__);
+	GKeyFile *keyfile = g_key_file_new();
+	GError *error = NULL;
+	
+	if(g_key_file_load_from_file(keyfile, SYS_CONF_DIR"/rtcsp.ini", G_KEY_FILE_NONE, &error)) {
+		char *host = g_key_file_get_string(keyfile, "my", "host", &error);
+		if(host) {
+			mod_my_host = host;
+			g_hash_table_insert(ht_main_free, host, free);
+		} else {
+			g_print_error_eq("config argument \"host\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+		
+		char *user = g_key_file_get_string(keyfile, "my", "user", &error);
+		if(user) {
+			mod_my_user = user;
+			g_hash_table_insert(ht_main_free, user, free);
+		} else {
+			g_print_error_eq("config argument \"user\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+		
+		char *passwd = g_key_file_get_string(keyfile, "my", "passwd", &error);
+		if(passwd) {
+			mod_my_passwd = passwd;
+			g_hash_table_insert(ht_main_free, passwd, free);
+		} else {
+			g_print_error_eq("config argument \"passwd\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+		
+		char *database = g_key_file_get_string(keyfile, "my", "database", &error);
+		if(database) {
+			mod_my_database = database;
+			g_hash_table_insert(ht_main_free, database, free);
+		} else {
+			g_print_error_eq("config argument \"database\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+		
+		int port = g_key_file_get_integer(keyfile, "my", "port", &error);
+		if(port > 0) {
+			mod_my_port = port;
+		} else {
+			g_print_error_eq("config argument \"port\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+		
+		char *socket = g_key_file_get_string(keyfile, "my", "socket", &error);
+		if(socket) {
+			mod_my_socket = socket;
+			g_hash_table_insert(ht_main_free, socket, free);
+		} else {
+			g_print_error_eq("config argument \"socket\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		}
+	}
+	g_print_error_not("config file \""SYS_CONF_DIR"/rtcsp.ini\" not exists or have error:\n", G_FILE_ERROR_NOENT, error);
+	g_key_file_free(keyfile);
+
 	mod_my_conns = (MYSQL**)malloc(sizeof(MYSQL*)*(rtcsp_nthreads+1));
 
 	mod_my_conns[0] = mysql_init(NULL);
@@ -88,6 +153,7 @@ void mod_my_start() {
 
 void mod_my_stop() {
 	mysql_close(mod_my_conns[0]);
+	mysql_server_end();
 	
 	free(mod_my_conns);
 	

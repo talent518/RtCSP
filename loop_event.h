@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <event.h>
+#include <glib.h>
 #include "queue.h"
 
 typedef struct
