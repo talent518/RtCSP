@@ -15,7 +15,7 @@ bool demo_string_response(conn_t *ptr, const char *data, int datalen) {
 }
 
 bool demo_mysql_request(conn_t *ptr, GString *gstr) {
-	g_string_append_printf(gstr, "SHOW TABLES");
+	g_string_append_printf(gstr, "SELECT COUNT(1) FROM session");
 
 	return true;
 }

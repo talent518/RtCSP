@@ -141,9 +141,6 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d exited\n", me->id);
 
-	pthread_detach(me->tid);
-	pthread_exit(NULL);
-
 	return NULL;
 }
 
@@ -385,7 +382,12 @@ static void signal_handler(const int fd, short event, void *arg) {
 		write(worker_threads[i].write_fd, &chr, 1);
 	}
 
-	dprintf("%s: wait worker thread\n", __func__);
+	for(i=0; i<bench_nthreads; i++) {
+		dprintf("%s: wait thread exit %d\n", __func__, i);
+		pthread_join(worker_threads[i].tid, NULL);
+	}
+	
+	dprintf("%s: wait worker thread for condition lock\n", __func__);
 	pthread_mutex_lock(&init_lock);
 	while (main_thread.nthreads > 0) {
 		pthread_cond_wait(&init_cond, &init_lock);
@@ -407,11 +409,14 @@ void worker_create(void *(*func)(void *), void *arg)
 	int             ret;
 
 	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	if ((ret = pthread_create(&thread, &attr, func, arg)) != 0) {
 		fprintf(stderr, "Can't create thread: %s\n", strerror(ret));
 		exit(1);
 	}
+	
+	pthread_attr_destroy(&attr);
 }
 
 void thread_init() {

@@ -84,6 +84,18 @@ void is_accept_conn(bool do_accept) {
 	write(listen_thread.write_fd, &chr, 1);
 }
 
+static void close_conn_free(queue_item_t *item) {
+	conn_t *ptr = item->data;
+	
+	printf("%s: %d\n", __func__, ptr->index);
+	conn_info(ptr);
+	clean_conn(ptr);
+	hook_conn_close(ptr);
+	remove_conn(ptr);
+	
+	free(item);
+}
+
 static void *worker_thread_handler(void *arg)
 {
 	worker_thread_t *me = arg;
@@ -91,21 +103,24 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d created\n", me->id);
 
-	unsigned int i;
+	int i;
 	for(i=0;i<rtcsp_length;i++) {
 		if(rtcsp_modules[i]->thread_init) {
 			rtcsp_modules[i]->thread_init(me);
 		}
 	}
 
-    pthread_mutex_lock(&init_lock);
-    listen_thread.nthreads++;
+	pthread_mutex_lock(&init_lock);
+	listen_thread.nthreads++;
 	pthread_cond_signal(&init_cond);
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_unlock(&init_lock);
 
 	event_base_loop(me->base, 0);
 
-	for(i=0;i<rtcsp_length;i++) {
+	queue_free_ex(me->accept_queue, close_conn_free);
+	queue_free_ex(me->close_queue, close_conn_free);
+
+	for(i=rtcsp_length-1; i>=0; i--) {
 		if(rtcsp_modules[i]->thread_destory) {
 			rtcsp_modules[i]->thread_destory(me);
 		}
@@ -114,18 +129,12 @@ static void *worker_thread_handler(void *arg)
 	event_del(&me->event);
 	event_base_free(me->base);
 
-	queue_free(me->accept_queue);
-	queue_free(me->close_queue);
-
-    pthread_mutex_lock(&init_lock);
-    listen_thread.nthreads--;
-    pthread_cond_signal(&init_cond);
-    pthread_mutex_unlock(&init_lock);
+	pthread_mutex_lock(&init_lock);
+	listen_thread.nthreads--;
+	pthread_cond_signal(&init_cond);
+	pthread_mutex_unlock(&init_lock);
 
 	dprintf("thread %d exited\n", me->id);
-
-	pthread_detach(me->tid);
-	pthread_exit(NULL);
 
 	return NULL;
 }
@@ -137,11 +146,14 @@ void worker_create(void *(*func)(void *), void *arg)
 	int             ret;
 
 	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	if ((ret = pthread_create(&thread, &attr, func, arg)) != 0) {
 		fprintf(stderr, "Can't create thread: %s\n", strerror(ret));
 		exit(1);
 	}
+	
+	pthread_attr_destroy(&attr);
 }
 
 static void read_handler(int sock, short event,	void* arg)
@@ -409,36 +421,34 @@ static void signal_handler(const int fd, short event, void *arg) {
 	is_accept_conn_ex(false);
 
 	unsigned int i;
+
+	dprintf("%s: close conn\n", __func__);
+
+	BEGIN_READ_LOCK {
+		for(i=0; i<rtcsp_maxclients; i++) {
+			if(iconns[i]) {
+				queue_push(iconns[i]->thread->close_queue, iconns[i]);
+			}
+		}
+	} END_READ_LOCK;
+	
 	char chr = '-';
 	for(i=0; i<rtcsp_nthreads; i++) {
 		dprintf("%s: notify thread exit %d\n", __func__, i);
 		write(worker_threads[i].write_fd, &chr, 1);
 	}
 
-	dprintf("%s: wait worker thread\n", __func__);
-    pthread_mutex_lock(&init_lock);
-    while (listen_thread.nthreads > 0) {
-        pthread_cond_wait(&init_cond, &init_lock);
-    }
-    pthread_mutex_unlock(&init_lock);
-
-	dprintf("%s: close conn\n", __func__);
-
-	conn_t *ptr;
-
-	for(i=0; i<rtcsp_maxclients; i++) {
-		ptr = iconns[i];
-
-		if(!ptr) {
-			continue;
-		}
-
-		conn_info(ptr);
-		
-		clean_conn(ptr);
-
-		hook_conn_close(ptr);
+	for(i=0; i<rtcsp_nthreads; i++) {
+		dprintf("%s: wait thread exit %d\n", __func__, i);
+		pthread_join(worker_threads[i].tid, NULL);
 	}
+
+	dprintf("%s: wait worker thread for condition lock\n", __func__);
+	pthread_mutex_lock(&init_lock);
+	while (listen_thread.nthreads > 0) {
+		pthread_cond_wait(&init_cond, &init_lock);
+	}
+	pthread_mutex_unlock(&init_lock);
 
 	dprintf("%s: exit main thread\n", __func__);
 	event_base_loopbreak(listen_thread.base);
@@ -499,7 +509,7 @@ void loop_event (int sockfd) {
 
 	ht_main_free = g_hash_table_new(g_direct_hash, g_direct_equal);
 
-	unsigned int i,j;
+	int i,j;
 	conn_recv_t *ptr;
 	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
 	for(i=0;i<rtcsp_length;i++) {
@@ -525,7 +535,8 @@ void loop_event (int sockfd) {
 	event_del(&listen_thread.listen_ev);
 	event_del(&listen_thread.signal_int);
 
-	for(i=0;i<rtcsp_length;i++) {
+	
+	for(i=rtcsp_length-1; i>=0; i--) {
 		if(rtcsp_modules[i]->stop) {
 			rtcsp_modules[i]->stop();
 		}

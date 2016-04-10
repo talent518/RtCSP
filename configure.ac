@@ -60,14 +60,14 @@ AC_ARG_WITH(mysql_config, [  --with-mysql-config=DIR         where to find the m
 if test ! -f "$with_mysql_config"; then
 	AC_MSG_ERROR([>= mysqlclient-5.1 support requested, but not found])
 fi
-CFLAGS="$CFLAGS $($with_mysql_config --cflags)"
-LDFLAGS="$LDFLAGS $($with_mysql_config --libs)"
+CFLAGS="$($with_mysql_config --cflags) $CFLAGS"
+LDFLAGS="$($with_mysql_config --libs_r) -Wl,-rpath,$($with_mysql_config --variable=pkglibdir) $LDFLAGS"
 
 AC_CHECK_LIB([m], pow,,[AC_MSG_ERROR([math support requested, but not found])])
 AC_CHECK_LIB([pthread], pthread_create,,[AC_MSG_ERROR([libpthread support requested, but not found])])
 AC_CHECK_LIB([event], event_base_loop,,[AC_MSG_ERROR([libevent support requested, but not found])])
 AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([>= glib-2.40.0 support requested, but not found])])
-# AC_CHECK_LIB([mysqlclient], mysql_real_connect,,[AC_MSG_ERROR([>= mysqlclient-5.1 support requested, but not found])])
+AC_CHECK_LIB([mysqlclient_r], mysql_real_connect,,[AC_MSG_ERROR([>= mysqlclient-5.1 support requested, but not found])])
 
 \cp Makefile.am.in Makefile.am
 
@@ -78,6 +78,9 @@ fi
 
 enable_modules=yes
 AC_ARG_ENABLE(modules, [  --enable-modules turn on modules \[default=yes\]], enable_modules=$enableval)
+
+let extsize=0
+let extbenchsize=0
 
 sinclude(modules/Makefile.m4)
 
