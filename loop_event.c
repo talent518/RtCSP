@@ -34,7 +34,7 @@ typedef struct
 static serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse receive hook key");
 
 inline void hook_conn_close(conn_t *ptr) {
-	int i;
+	register int i;
 	for(i=0;i<rtcsp_length;i++) {
 		if(rtcsp_modules[i]->conn_close) {
 			rtcsp_modules[i]->conn_close(ptr);
@@ -103,7 +103,7 @@ static void *worker_thread_handler(void *arg)
 
 	dprintf("thread %d created\n", me->id);
 
-	int i;
+	register int i;
 	for(i=0;i<rtcsp_length;i++) {
 		if(rtcsp_modules[i]->thread_init) {
 			rtcsp_modules[i]->thread_init(me);
@@ -213,7 +213,7 @@ end_read:
 
 static void notify_handler(const int fd, const short which, void *arg)
 {
-	int buffer_len,i;
+	register int buffer_len,i;
 	char chr,buffer[1024];
 	worker_thread_t *me = arg;
 	conn_t *ptr;
@@ -276,7 +276,7 @@ void thread_init() {
 	worker_threads = calloc(rtcsp_nthreads, sizeof(worker_thread_t));
 	assert(worker_threads);
 
-	int i;
+	register int i;
 	int fds[2];
 	for (i = 0; i < rtcsp_nthreads; i++) {
         if (pipe(fds)) {
@@ -319,7 +319,7 @@ void thread_init() {
 
 static void listen_notify_handler(const int fd, const short which, void *arg)
 {
-	int buf_len,i;
+	register int buf_len,i;
 	char buf[1024];
 
 	assert(fd == listen_thread.read_fd);
@@ -347,7 +347,7 @@ static void listen_notify_handler(const int fd, const short which, void *arg)
 
 static void listen_handler(const int fd, const short which, void *arg)
 {
-	unsigned int i;
+	register unsigned int i;
 	int conn_fd, ret;
 	struct sockaddr_in pin;
 	socklen_t len = sizeof(pin);
@@ -420,7 +420,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 
 	is_accept_conn_ex(false);
 
-	unsigned int i;
+	register unsigned int i;
 
 	dprintf("%s: close conn\n", __func__);
 
@@ -509,7 +509,7 @@ void loop_event (int sockfd) {
 
 	ht_main_free = g_hash_table_new(g_direct_hash, g_direct_equal);
 
-	int i,j;
+	register int i,j;
 	conn_recv_t *ptr;
 	ht_conn_recvs = g_hash_table_new(g_str_hash, g_str_equal);
 	for(i=0;i<rtcsp_length;i++) {

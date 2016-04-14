@@ -146,7 +146,7 @@ static void *worker_thread_handler(void *arg)
 
 static void worker_notify_handler(const int fd, const short which, void *arg)
 {
-	unsigned int buf_len,i;
+	register unsigned int buf_len,i;
 	char chr;
 	conn_t *ptr;
 	worker_thread_t *me = arg;
@@ -242,7 +242,7 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 }
 
 static inline void send_recv_call() {
-	unsigned int i;
+	register unsigned int i;
 
 	send_recv->run_time = 0;
 	send_recv->cause_close_conn_num = 0;
@@ -262,8 +262,8 @@ static inline void send_recv_call() {
 
 static void main_notify_handler(const int fd, const short which, void *arg)
 {
-	unsigned int i;
-	int buf_len,c;
+	register unsigned int i;
+	register int buf_len,c;
 	char buf[64];
 	assert(fd == main_thread.read_fd);
 
@@ -375,7 +375,7 @@ static void signal_handler(const int fd, short event, void *arg) {
 
 	event_del(&main_thread.signal_int);
 
-	unsigned int i;
+	register unsigned int i;
 	char chr = '-';
 	for(i=0; i<bench_nthreads; i++) {
 		dprintf("%s: notify thread exit %d\n", __func__, i);
@@ -428,7 +428,7 @@ void thread_init() {
 	worker_threads = calloc(bench_nthreads, sizeof(worker_thread_t));
 	assert(worker_threads);
 
-	unsigned int i;
+	register unsigned int i;
 	int fds[2];
 	for (i = 0; i < bench_nthreads; i++) {
         if (pipe(fds)) {
@@ -467,7 +467,7 @@ void thread_init() {
 }
 
 static void print_test_info() {
-	unsigned int i,j;
+	register unsigned int i,j;
 	conn_send_recv_t *recv;
 
 	for(i=0;i<bench_length;i++) {
@@ -499,7 +499,7 @@ void loop_event() {
 	main_thread.read_fd = fds[0];
 	main_thread.write_fd = fds[1];
 
-	unsigned int i;
+	register unsigned int i;
 	
 	int n = -1;
 	while(n<0 || n>=bench_length) {
