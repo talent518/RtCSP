@@ -4,24 +4,9 @@
 #include "mod_my.h"
 
 bool demo_conn_accept(conn_t *ptr) {
-	MYSQL_STMT   *stmt;
-	MYSQL_BIND   binds[4];
-	
-	stmt = mysql_stmt_init(MOD_MY_CONN);
-	if (!stmt)
-	{
-		fprintf(stderr, "mysql_stmt_init()\n");
-		return false;
-	}
-	
+	MYSQL_BIND binds[4];
 	char query[]="INSERT IGNORE INTO session(sessId,sockfd,host,port,dateline,createTime)VALUES(?,?,?,?,UNIX_TIMESTAMP(),NOW())";
-	
-	if (mysql_stmt_prepare(stmt, query, strlen(query)))
-	{
-		fprintf(stderr, "mysql_stmt_prepare(stmt, query, strlen(query)): %s: %s\n", mysql_stmt_error(stmt), query);
-		return false;
-	}
-	
+
 	memset(binds, 0, sizeof(binds));
 
 	binds[0].buffer_type = MYSQL_TYPE_LONG;
@@ -37,23 +22,11 @@ bool demo_conn_accept(conn_t *ptr) {
 	binds[3].buffer_type = MYSQL_TYPE_LONG;
 	binds[3].buffer = &ptr->port;
 
-	if (mysql_stmt_bind_param(stmt, binds))
-	{
-		fprintf(stderr, "mysql_stmt_bind_param(stmt, binds): %s: %s\n", mysql_stmt_error(stmt), query);
+	MOD_MY_QUERY(stmt, query, strlen(query), binds) {
 		return false;
-	}
-
-	if (mysql_stmt_execute(stmt))
-	{
-		fprintf(stderr, "mysql_stmt_execute(stmt): %s: %s\n", mysql_stmt_error(stmt), query);
+	} MOD_MY_QUERY_CLOSE(stmt, query) {
 		return false;
-	}
-	
-	if (mysql_stmt_close(stmt))
-	{
-		fprintf(stderr, "mysql_stmt_close(stmt): %s: %s\n", mysql_stmt_error(stmt), query);
-		return false;
-	}
+	} MOD_MY_QUERY_END();
 
 	conn_info_ex(ptr,"accept connection run in main thread");
 
@@ -65,47 +38,16 @@ void demo_conn_denied(conn_t *ptr) {
 }
 
 void demo_conn_close(conn_t *ptr) {
-	MYSQL_STMT   *stmt;
-	MYSQL_BIND   bind;
-	
-	stmt = mysql_stmt_init(MOD_MY_CONN_PTR);
-	if (!stmt)
-	{
-		fprintf(stderr, "mysql_stmt_init()\n");
-		return;
-	}
-	
+	MYSQL_BIND bind;
 	char query[] = "DELETE FROM session WHERE sessId=?";
-	
-	if (mysql_stmt_prepare(stmt, query, strlen(query)))
-	{
-		fprintf(stderr, "mysql_stmt_prepare(stmt, query, strlen(query)): %s: %s\n", mysql_stmt_error(stmt), query);
-		return;
-	}
 	
 	memset(&bind, 0, sizeof(bind));
 
 	bind.buffer_type = MYSQL_TYPE_LONG;
 	bind.buffer = &ptr->index;
 
-	if (mysql_stmt_bind_param(stmt, &bind))
-	{
-		fprintf(stderr, "mysql_stmt_bind_param(stmt, binds): %s: %s\n", mysql_stmt_error(stmt), query);
-		return;
-	}
-
-	if (mysql_stmt_execute(stmt))
-	{
-		fprintf(stderr, "mysql_stmt_execute(stmt): %s: %s\n", mysql_stmt_error(stmt), query);
-		return;
-	}
+	MOD_MY_QUERY_PTR_ONLY(stmt, query, strlen(query), &bind);
 	
-	if (mysql_stmt_close(stmt))
-	{
-		fprintf(stderr, "mysql_stmt_close(stmt): %s: %s\n", mysql_stmt_error(stmt), query);
-		return;
-	}
-
 	conn_info_ex(ptr,"close connection");
 }
 
