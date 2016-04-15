@@ -15,14 +15,12 @@ bool demo_string_response(conn_t *ptr, const char *data, int datalen) {
 }
 
 bool demo_mysql_request(conn_t *ptr, GString *gstr) {
-	g_string_append_printf(gstr, "SHOW DATABASES");
-
 	return true;
 }
 
 bool demo_mysql_response(conn_t *ptr, const char *data, int datalen) {
 	//printf("%s...(%d)\n",__func__, datalen);
-	//printf("%s", data);
+	//printf("data(%d): \n%s", datalen, data);
 
 	return true;
 }

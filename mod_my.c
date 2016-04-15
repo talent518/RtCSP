@@ -11,6 +11,7 @@ char *mod_my_passwd = "1qazXSW23edc";
 char *mod_my_database = "rtcsp";
 unsigned int mod_my_port = 3306;
 char *mod_my_socket = MYSQL_UNIX_ADDR;
+char *mod_my_charset = "utf8";
 unsigned long mod_my_flags = CLIENT_COMPRESS | CLIENT_FOUND_ROWS | CLIENT_LOCAL_FILES;
 
 MYSQL *mod_my_conns;
@@ -31,6 +32,7 @@ static struct timeval tv;
 inline void mod_my_connect(int i) {
 	char reconnect = 1;
 	mysql_options(MOD_MY_CONN_EX(i), MYSQL_OPT_RECONNECT, &reconnect);
+	mysql_options(MOD_MY_CONN_EX(i), MYSQL_SET_CHARSET_NAME, mod_my_charset);
 	
 	if (!mysql_real_connect(MOD_MY_CONN_EX(i), mod_my_host, mod_my_user, mod_my_passwd, mod_my_database, mod_my_port, mod_my_socket, mod_my_flags)) {
 		fprintf(stderr, "mysql connect error: %s\n", mysql_error(MOD_MY_CONN_EX(i)));
@@ -38,7 +40,9 @@ inline void mod_my_connect(int i) {
 	}
 	
 #if	 MYSQL_VERSION_ID > 40100
-	mysql_query(MOD_MY_CONN_EX(i), "SET NAMES UTF-8");
+	char query[100];
+	sprintf(query, "SET NAMES %s", mod_my_charset);
+	mysql_query(MOD_MY_CONN_EX(i), query);
 	#if MYSQL_VERSION_ID > 50001
 		mysql_query(MOD_MY_CONN_EX(i), "SET sql_mode=''");
 	#endif
@@ -125,6 +129,13 @@ void mod_my_start() {
 			g_hash_table_insert(ht_main_free, socket, free);
 		}
 		g_print_error_eq("config argument \"socket\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
+		
+		char *charset = g_key_file_get_string(keyfile, "my", "charset", &error);
+		if(charset) {
+			mod_my_charset = charset;
+			g_hash_table_insert(ht_main_free, charset, free);
+		}
+		g_print_error_eq("config argument \"charset\" for \"my\" error:\n", G_KEY_FILE_ERROR_INVALID_VALUE, error);
 	}
 	g_print_error_not("config file \""SYS_CONF_DIR"/rtcsp.ini\" not exists or have error:\n", G_FILE_ERROR_NOENT, error);
 	g_key_file_free(keyfile);
