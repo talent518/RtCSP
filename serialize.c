@@ -58,15 +58,16 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 
 	switch(*buffer) {
 		case SRL_TYPE_BOOLEAN:
-		case SRL_TYPE_BOOLEAN2:
 		case SRL_TYPE_CHAR:
-		case SRL_TYPE_CHAR2:
-		case SRL_TYPE_INTEGER:
-		case SRL_TYPE_UNSIGNED_INTEGER:
+		case SRL_TYPE_BYTE:
+		case SRL_TYPE_UBYTE:
+		case SRL_TYPE_SHORT:
+		case SRL_TYPE_USHORT:
+		case SRL_TYPE_INT:
+		case SRL_TYPE_UINT:
 		case SRL_TYPE_LONG:
-		case SRL_TYPE_UNSIGNED_LONG:
+		case SRL_TYPE_ULONG:
 		case SRL_TYPE_FLOAT:
-		case SRL_TYPE_FLOAT2:
 		case SRL_TYPE_DOUBLE:
 		case SRL_TYPE_LONG_DOUBLE:
 			ptr = memchr(buffer, ';', buflen);
@@ -106,12 +107,10 @@ length_t _serialize_parse_force(const char *bbuffer, char *buffer, volatile leng
 		case SRL_TYPE_ARRLEN: {
 			n += 2;
 		}
-		case SRL_TYPE_OBJECT:
-		case SRL_TYPE_OBJECT2: {
+		case SRL_TYPE_OBJECT: {
 			n += 2;
 		}
 		case SRL_TYPE_HASHTABLE:
-		case SRL_TYPE_HASHTABLE2:
 			if(!(ptr = memchr(buffer, be[n], buflen))) {
 				fprintf(stderr, "error(force): In %u position after not found character for \"%c\".\n", (length_t)(buffer-bbuffer), be[n]);
 
@@ -189,23 +188,37 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 	pos = NULL;
 
 	switch(format->type) {
-		case SRL_TYPE_BOOLEAN:
-		case SRL_TYPE_BOOLEAN2: {
+		case SRL_TYPE_BOOLEAN: {
 			*((bool_t*)arg)=(*buffer != '0');
 			pos=buffer+1;
 			break;
 		}
-		case SRL_TYPE_CHAR:
-		case SRL_TYPE_CHAR2: {
+		case SRL_TYPE_CHAR: {
 			*((char_t*)arg)=*buffer;
 			pos=buffer+1;
 			break;
 		}
-		case SRL_TYPE_INTEGER: {
+		case SRL_TYPE_BYTE: {
+			*((byte_t*)arg)=strtol(buffer,&pos,10);
+			break;
+		}
+		case SRL_TYPE_UBYTE: {
+			*((ubyte_t*)arg)=strtoul(buffer,&pos,10);
+			break;
+		}
+		case SRL_TYPE_SHORT: {
+			*((short_t*)arg)=strtol(buffer,&pos,10);
+			break;
+		}
+		case SRL_TYPE_USHORT: {
+			*((ushort_t*)arg)=strtoul(buffer,&pos,10);
+			break;
+		}
+		case SRL_TYPE_INT: {
 			*((int_t*)arg)=strtol(buffer,&pos,10);
 			break;
 		}
-		case SRL_TYPE_UNSIGNED_INTEGER: {
+		case SRL_TYPE_UINT: {
 			*((uint_t*)arg)=strtoul(buffer,&pos,10);
 			break;
 		}
@@ -213,12 +226,11 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 			*((long_t*)arg)=strtol(buffer,&pos,10);
 			break;
 		}
-		case SRL_TYPE_UNSIGNED_LONG: {
+		case SRL_TYPE_ULONG: {
 			*((ulong_t*)arg)=strtoul(buffer,&pos,10);
 			break;
 		}
-		case SRL_TYPE_FLOAT:
-		case SRL_TYPE_FLOAT2: {
+		case SRL_TYPE_FLOAT: {
 			*((float_t*)arg)=strtof(buffer,&pos);
 			break;
 		}
@@ -236,8 +248,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 			chr = ':';
 			break;
 		}
-		case SRL_TYPE_OBJECT:
-		case SRL_TYPE_OBJECT2: {
+		case SRL_TYPE_OBJECT: {
 			chr = '{';
 			pos = buffer;
 			break;
@@ -248,8 +259,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 			chr = '[';
 			break;
 		}
-		case SRL_TYPE_HASHTABLE:
-		case SRL_TYPE_HASHTABLE2: {
+		case SRL_TYPE_HASHTABLE: {
 			chr = '(';
 			pos = buffer;
 			break;
@@ -368,7 +378,7 @@ length_t _serialize_parse(void *obj, serialize_format_t *format, const char *bbu
 
 		length_t ikey;
 		void *hval;
-		serialize_format_t iformat = SFT_UINT(null_t, null, "parse hash table of integer key");
+		serialize_format_t iformat = SFT_UINT(null_t, null, "parse hash table of INT key");
 
 		srl_hash_t hkey = {NULL, 0};
 		serialize_format_t hformat = SFT_STR(srl_hash_t, key, keylen, "parse hash table of string key");
@@ -506,23 +516,39 @@ void serialize_string_ex(GString *gstr, void *obj, serialize_format_t *format) {
 
 	g_string_append_printf(gstr, "%c:", format->type);
 	switch(format->type) {
-		case SRL_TYPE_BOOLEAN:
-		case SRL_TYPE_BOOLEAN2: {
+		case SRL_TYPE_BOOLEAN: {
 			g_string_append_printf(gstr, "%d", *(bool_t*)arg?1:0);
 			break;
 		}
 
-		case SRL_TYPE_CHAR:
-		case SRL_TYPE_CHAR2: {
+		case SRL_TYPE_CHAR: {
 			g_string_append_printf(gstr, "%c", *(char_t*)arg);
 			break;
 		}
 
-		case SRL_TYPE_INTEGER: {
+		case SRL_TYPE_BYTE: {
+			g_string_append_printf(gstr, "%d", *(byte_t*)arg);
+			break;
+		}
+		case SRL_TYPE_UBYTE: {
+			g_string_append_printf(gstr, "%d", *(ubyte_t*)arg);
+			break;
+		}
+
+		case SRL_TYPE_SHORT: {
+			g_string_append_printf(gstr, "%d", *(short_t*)arg);
+			break;
+		}
+		case SRL_TYPE_USHORT: {
+			g_string_append_printf(gstr, "%d", *(ushort_t*)arg);
+			break;
+		}
+
+		case SRL_TYPE_INT: {
 			g_string_append_printf(gstr, "%d", *(int_t*)arg);
 			break;
 		}
-		case SRL_TYPE_UNSIGNED_INTEGER: {
+		case SRL_TYPE_UINT: {
 			g_string_append_printf(gstr, "%u", *(uint_t*)arg);
 			break;
 		}
@@ -532,13 +558,12 @@ void serialize_string_ex(GString *gstr, void *obj, serialize_format_t *format) {
 			break;
 		}
 
-		case SRL_TYPE_UNSIGNED_LONG: {
+		case SRL_TYPE_ULONG: {
 			g_string_append_printf(gstr, "%lu", *(ulong_t*)arg);
 			break;
 		}
 
-		case SRL_TYPE_FLOAT:
-		case SRL_TYPE_FLOAT2: {
+		case SRL_TYPE_FLOAT: {
 			g_string_append_printf(gstr, "%f", *(float_t*)arg);
 			break;
 		}
@@ -582,8 +607,7 @@ void serialize_string_ex(GString *gstr, void *obj, serialize_format_t *format) {
 			break;
 		}
 
-		case SRL_TYPE_HASHTABLE:
-		case SRL_TYPE_HASHTABLE2: {
+		case SRL_TYPE_HASHTABLE: {
 			g_string_append_c(gstr, '(');
 			srl_foreach_t fe = {gstr, format};
 			g_hash_table_foreach(*(GHashTable**)arg, (GHFunc)_serialize_foreach_ht, &fe);

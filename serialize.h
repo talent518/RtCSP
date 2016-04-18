@@ -5,26 +5,25 @@
 #include <stdbool.h>
 #include <glib.h>
 
-#define SRL_TYPE_BOOLEAN				'b'
-#define SRL_TYPE_BOOLEAN2				'B'
-#define SRL_TYPE_CHAR					'c'
-#define SRL_TYPE_CHAR2					'C'
-#define SRL_TYPE_INTEGER				'i'
-#define SRL_TYPE_UNSIGNED_INTEGER		'I'
-#define SRL_TYPE_LONG					'l'
-#define SRL_TYPE_UNSIGNED_LONG			'L'
-#define SRL_TYPE_FLOAT					'f'
-#define SRL_TYPE_FLOAT2					'F'
-#define SRL_TYPE_DOUBLE					'd'
-#define SRL_TYPE_LONG_DOUBLE			'D'
-#define SRL_TYPE_STRING					's'
-#define SRL_TYPE_STRING_LENGTH			'S'
-#define SRL_TYPE_OBJECT					'o'
-#define SRL_TYPE_OBJECT2				'O'
-#define SRL_TYPE_ARRAY					'a'
-#define SRL_TYPE_ARRLEN					'A'
-#define SRL_TYPE_HASHTABLE				'h'
-#define SRL_TYPE_HASHTABLE2				'H'
+#define SRL_TYPE_BOOLEAN			'b'
+#define SRL_TYPE_CHAR				'c'
+#define SRL_TYPE_BYTE				'y'
+#define SRL_TYPE_UBYTE			'Y'
+#define SRL_TYPE_SHORT			't'
+#define SRL_TYPE_USHORT			'T'
+#define SRL_TYPE_INT				'i'
+#define SRL_TYPE_UINT				'I'
+#define SRL_TYPE_LONG				'l'
+#define SRL_TYPE_ULONG			'L'
+#define SRL_TYPE_FLOAT			'f'
+#define SRL_TYPE_DOUBLE			'd'
+#define SRL_TYPE_LONG_DOUBLE	'D'
+#define SRL_TYPE_STRING			's'
+#define SRL_TYPE_STRING_LENGTH	'S'
+#define SRL_TYPE_OBJECT			'o'
+#define SRL_TYPE_ARRAY			'a'
+#define SRL_TYPE_ARRLEN			'A'
+#define SRL_TYPE_HASHTABLE		'h'
 
 #define _SFT_ARG8(type,object,property,length,size,memsize,format,isint,func,help) {#property, sizeof(#property)-1, type, isint, offsetof(object,property), help, length, size, memsize, format, func}
 #define _SFT_ARG7(type,object,property,length,size,memsize,format,help) _SFT_ARG8(type, object, property, length, size, memsize, format, false, NULL, help)
@@ -35,6 +34,10 @@
 
 typedef bool bool_t;
 typedef char char_t;
+typedef char byte_t;
+typedef unsigned char ubyte_t;
+typedef short short_t;
+typedef unsigned short ushort_t;
 typedef int int_t;
 typedef unsigned int uint_t;
 typedef long int long_t;
@@ -47,10 +50,14 @@ typedef unsigned int length_t;
 
 #define SFT_BOOL(object,property,help) _SFT_ARG4(SRL_TYPE_BOOLEAN, object, property, help)
 #define SFT_CHAR(object,property,help) _SFT_ARG4(SRL_TYPE_CHAR, object, property, help)
-#define SFT_INT(object,property,help) _SFT_ARG4(SRL_TYPE_INTEGER, object, property, help)
-#define SFT_UINT(object,property,help) _SFT_ARG4(SRL_TYPE_UNSIGNED_INTEGER, object, property, help)
+#define SFT_BYTE(object,property,help) _SFT_ARG4(SRL_TYPE_BYTE, object, property, help)
+#define SFT_UBYTE(object,property,help) _SFT_ARG4(SRL_TYPE_UBYTE, object, property, help)
+#define SFT_SHORT(object,property,help) _SFT_ARG4(SRL_TYPE_SHORT, object, property, help)
+#define SFT_USHORT(object,property,help) _SFT_ARG4(SRL_TYPE_USHORT, object, property, help)
+#define SFT_INT(object,property,help) _SFT_ARG4(SRL_TYPE_INT, object, property, help)
+#define SFT_UINT(object,property,help) _SFT_ARG4(SRL_TYPE_UINT, object, property, help)
 #define SFT_LONG(object,property,help) _SFT_ARG4(SRL_TYPE_LONG, object, property, help)
-#define SFT_ULONG(object,property,help) _SFT_ARG4(SRL_TYPE_UNSIGNED_LONG, object, property, help)
+#define SFT_ULONG(object,property,help) _SFT_ARG4(SRL_TYPE_ULONG, object, property, help)
 #define SFT_FLOAT(object,property,help) _SFT_ARG4(SRL_TYPE_FLOAT, object, property, help)
 #define SFT_DOUBLE(object,property,help) _SFT_ARG4(SRL_TYPE_DOUBLE,object, property, help)
 #define SFT_LONG_DOUBLE(object,property,help) _SFT_ARG4(SRL_TYPE_LONG_DOUBLE, object, property, help)

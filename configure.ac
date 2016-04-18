@@ -51,8 +51,13 @@ RTCSP_ADD_LIBRARY_WITH_PATH($with_libevent/lib)
 # glib is required
 AC_ARG_WITH(glib, [  --with-glib=DIR         where to find the glib-2.0 library, default /usr], , [with_glib=/usr])
 RTCSP_ADD_INCLUDE($with_glib/include/glib-2.0)
-RTCSP_ADD_INCLUDE($with_glib/lib/glib-2.0/include)
-RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
+if [ -d "$with_glib/lib64/glib-2.0/include" ]; then
+	RTCSP_ADD_INCLUDE($with_glib/lib64/glib-2.0/include)
+	RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib64)
+else
+	RTCSP_ADD_INCLUDE($with_glib/lib/glib-2.0/include)
+	RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
+fi
 PKG_CHECK_MODULES(glib, glib-2.0 >= 2.40.0)
 
 # mysql is required

@@ -363,7 +363,7 @@ static void timeout_req_handler(const int fd, short event, void *arg) {
 	main_thread.max_requests = max(main_thread.max_requests, requests);
 	main_thread.max_ok_requests = max(main_thread.max_ok_requests, ok_requests);
 
-	printf("seconds(%06d), send_recv(%s), connections(%d), requests(%d): (%d/%d) min(%d/%d) max(%d/%d) avg(%.3f/%.3f)\n", main_thread.seconds++, send_recv->key, main_thread.conn_num, main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
+	printf("seconds(%06d), send_recv(%s), connections(%d), requests(%d): (%d/%d) min(%d/%d) max(%d/%d) avg(%.1f/%.1f)\n", main_thread.seconds++, send_recv->key, main_thread.conn_num, main_thread.current_request_index, ok_requests, requests, main_thread.min_ok_requests, main_thread.min_requests, main_thread.max_ok_requests, main_thread.max_requests, main_thread.sum_ok_requests/count, main_thread.sum_requests/count);
 
 	main_thread.second_requests[main_thread.current_request_index] = requests;
 	main_thread.second_ok_requests[main_thread.current_request_index] = ok_requests;
@@ -475,7 +475,7 @@ static void print_test_info() {
 		for(j=0;j<bench_modules[i]->recvs_len;j++) {
 			recv = &(bench_modules[i]->recvs[j]);
 			recv->run_time = max(1, recv->run_time);
-			printf("    %s: closes(%d), requests(%d / %d), runtime(%.3f second), ok_requests(%.3f/s), requests(%.3f/s)\n", recv->key, recv->cause_close_conn_num, recv->ok_requests, recv->requests, recv->run_time, recv->throughput_ok_requests, recv->throughput_requests);
+			printf("    %s: closes(%d), requests(%d / %d), runtime(%.1f second), ok_requests(%.1f/s), requests(%.1f/s)\n", recv->key, recv->cause_close_conn_num, recv->ok_requests, recv->requests, recv->run_time, recv->throughput_ok_requests, recv->throughput_requests);
 		}
 		printf("\n");
 	}

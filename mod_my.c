@@ -7,7 +7,7 @@
 
 char *mod_my_host = "localhost";
 char *mod_my_user = "root";
-char *mod_my_passwd = "1qazXSW23edc";
+char *mod_my_passwd = "";
 char *mod_my_database = "rtcsp";
 unsigned int mod_my_port = 3306;
 char *mod_my_socket = MYSQL_UNIX_ADDR;
