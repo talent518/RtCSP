@@ -47,6 +47,23 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime turn on print run time], CFLAGS="$CFL
 AC_ARG_WITH(libevent, [  --with-libevent=DIR         where to find the libevent library, default /usr], , [with_libevent=/usr])
 RTCSP_ADD_INCLUDE($with_libevent/include)
 RTCSP_ADD_LIBRARY_WITH_PATH($with_libevent/lib)
+AC_CHECK_LIB([event], event_base_loop, [event_LIB=yes], [event_LIB=no])
+if test x$event_LIB = xno; then
+	AC_CHECK_HEADERS([event.h],[
+		EVENT_STATIC_LIB="-levent"
+		AC_SUBST(EVENT_STATIC_LIB)
+	],[
+		AC_MSG_ERROR([In -levent library not found function event_base_loop])
+	])
+else
+	AC_CHECK_HEADERS([event.h],[
+		LDFLAGS="$LDFLAGS -levent"
+		EVENT_STATIC_LIB=
+		AC_SUBST(EVENT_STATIC_LIB)
+	],[
+		AC_MSG_ERROR([In -levent library not found function event_base_loop])
+	])
+fi
 
 # glib is required
 AC_ARG_WITH(glib, [  --with-glib=DIR         where to find the glib-2.0 library, default /usr], , [with_glib=/usr])
@@ -59,6 +76,26 @@ else
 	RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
 fi
 PKG_CHECK_MODULES(glib, glib-2.0 >= 2.40.0)
+AC_CHECK_LIB(glib-2.0, g_hash_table_new, [glib_LIB=yes], [glib_LIB=no])
+if test x$glib_LIB = xno; then
+	AC_CHECK_HEADERS([glib.h],[
+		GLIB_STATIC_LIB="-lglib-2.0 -lintl -liconv"
+		AC_SUBST(GLIB_STATIC_LIB)
+	],[
+		AC_MSG_ERROR([In -lglib-2.0 library not found function g_hash_table_new])
+	])
+else
+	AC_CHECK_HEADERS([glib.h],[
+		LDFLAGS="$LDFLAGS -lglib-2.0"
+		GLIB_STATIC_LIB=
+		AC_SUBST(GLIB_STATIC_LIB)
+	],[
+		AC_MSG_ERROR([In -lglib-2.0 library not found function g_hash_table_new])
+	])
+fi
+
+AC_CHECK_LIB([m], pow,,[AC_MSG_ERROR([math support requested, but not found])])
+AC_CHECK_LIB([pthread], pthread_create,,[AC_MSG_ERROR([libpthread support requested, but not found])])
 
 # mysql is required
 AC_ARG_WITH(mysql_config, [  --with-mysql-config=DIR         where to find the mysqlclient library, default /usr/bin/mysql_config], , [with_mysql_config=/usr/bin/mysql_config])
@@ -67,11 +104,6 @@ if test ! -f "$with_mysql_config"; then
 fi
 CFLAGS="$($with_mysql_config --cflags) $CFLAGS"
 LDFLAGS="$($with_mysql_config --libs_r) -Wl,-rpath,$($with_mysql_config --variable=pkglibdir) $LDFLAGS"
-
-AC_CHECK_LIB([m], pow,,[AC_MSG_ERROR([math support requested, but not found])])
-AC_CHECK_LIB([pthread], pthread_create,,[AC_MSG_ERROR([libpthread support requested, but not found])])
-AC_CHECK_LIB([event], event_base_loop,,[AC_MSG_ERROR([libevent support requested, but not found])])
-AC_CHECK_LIB([glib-2.0], g_hash_table_new,,[AC_MSG_ERROR([>= glib-2.40.0 support requested, but not found])])
 AC_CHECK_LIB([mysqlclient_r], mysql_real_connect,,[AC_MSG_ERROR([>= mysqlclient-5.1 support requested, but not found])])
 
 \cp Makefile.am.in Makefile.am
