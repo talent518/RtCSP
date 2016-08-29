@@ -169,6 +169,7 @@ static void read_handler(int sock, short event,	void* arg)
 	if(ret<0) {//已放入缓冲区
 	} else if(ret==0) {//关闭连接
 		event_del(&ptr->event);
+		clean_conn(ptr);
 		hook_conn_close(ptr);
 		remove_conn(ptr);
 
