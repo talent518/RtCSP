@@ -145,26 +145,38 @@ conn_t *socket_connect(const char *host, short int port){
 	}
 
 	int opt=1;
-	setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(int));//
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+	assert(ret == 0);
 
-	int send_recv_timeout=2000;
-	setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,&send_recv_timeout,sizeof(int));//发送超时
-	setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&send_recv_timeout,sizeof(int));//接收超时
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
+	struct timeval timeout = {3, 0};//3s
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));//接收超时
+	assert(ret == 0);
+#else
+	int send_timeout = 3000, recv_timeout = 3000;
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//接收超时
+	assert(ret == 0);
+#endif
 
 	typedef struct {
-		u_short l_onoff;
-		u_short l_linger;
+		int l_onoff;
+		int l_linger;
 	} linger;
 	linger m_sLinger;
 	m_sLinger.l_onoff=1;//(在closesocket()调用,但是还有数据没发送完毕的时候容许逗留)
 	// 如果m_sLinger.l_onoff=0;则功能和2.)作用相同;
 	m_sLinger.l_linger=5;//(容许逗留的时间为5秒)
-	setsockopt(sockfd,SOL_SOCKET,SO_LINGER,(const char*)&m_sLinger,sizeof(linger));
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (const char*)&m_sLinger, sizeof(linger));
+	assert(ret == 0);
 
 #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
 	int send_recv_buffers=0;
-	setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,(char *)&send_recv_buffers,sizeof(int));//发送缓冲区大小
-	setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(char *)&send_recv_buffers,sizeof(int));//接收缓冲区大小
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (char *)&send_recv_buffers, sizeof(int));//发送缓冲区大小
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (char *)&send_recv_buffers, sizeof(int));//接收缓冲区大小
 #endif
 
 	bzero(&sin,sizeof(sin));

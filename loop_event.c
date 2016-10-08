@@ -358,9 +358,19 @@ static void listen_handler(const int fd, const short which, void *arg)
 		return;
 	}
 
-	int send_timeout = 1000, recv_timeout = 1000;
-	setsockopt(conn_fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//发送超时
-	setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//接收超时
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
+	struct timeval timeout = {3, 0};//3s
+	ret = setsockopt(conn_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));//接收超时
+	assert(ret == 0);
+#else
+	int send_timeout = 3000, recv_timeout = 3000;
+	ret = setsockopt(conn_fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//接收超时
+	assert(ret == 0);
+#endif
 
 	conn_t *ptr = (conn_t *)malloc(sizeof(conn_t));
 

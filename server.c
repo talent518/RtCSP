@@ -9,6 +9,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <assert.h>
 
 #include "config.h"
 #include "RtCSP.h"
@@ -29,8 +30,7 @@ char *rtcsp_user="daemon";
 int rtcsp_maxclients=1000;
 int rtcsp_maxrecvs=2*1024*1024;
 
-int server_start()
-{
+int server_start() {
 	struct sockaddr_in sin;
 	int listen_fd;
 	int ret;
@@ -42,8 +42,7 @@ int server_start()
 	flush();
 
 	listen_fd=socket(AF_INET,SOCK_STREAM,0);
-	if (listen_fd<0)
-	{
+	if (listen_fd<0) {
 		system("echo -e \"\\E[31m\".[Failed]");
 		system("tput sgr0");
 		printf("Not on the host %s bind port %d\n",rtcsp_host,rtcsp_port);
@@ -51,28 +50,42 @@ int server_start()
 	}
 
 	int opt=1;
-	setsockopt(listen_fd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(int));
-    setsockopt(listen_fd, SOL_SOCKET, SO_KEEPALIVE,&opt, sizeof(int));
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+	assert(ret == 0);
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(int));
+	assert(ret == 0);
 
-	int send_timeout=1000,recv_timeout=1000;
-	setsockopt(listen_fd,SOL_SOCKET,SO_SNDTIMEO,&send_timeout,sizeof(int));//发送超时
-	setsockopt(listen_fd,SOL_SOCKET,SO_RCVTIMEO,&recv_timeout,sizeof(int));//接收超时
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
+	struct timeval timeout = {3, 0};//3s
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));//接收超时
+	assert(ret == 0);
+#else
+	int send_timeout = 3000, recv_timeout = 3000;
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//发送超时
+	assert(ret == 0);
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//接收超时
+	assert(ret == 0);
+#endif
 
-	typedef struct
-	{
-		u_short l_onoff;
-		u_short l_linger;
+	typedef struct {
+		int l_onoff;
+		int l_linger;
 	} linger;
 	linger m_sLinger;
 	m_sLinger.l_onoff=1;//(在closesocket()调用,但是还有数据没发送完毕的时候容许逗留)
 	// 如果m_sLinger.l_onoff=0;则功能和2.)作用相同;
 	m_sLinger.l_linger=5;//(容许逗留的时间为5秒)
-	setsockopt(listen_fd,SOL_SOCKET,SO_LINGER,&m_sLinger,sizeof(linger));
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_LINGER, &m_sLinger, sizeof(linger));
+	assert(ret == 0);
 
 #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
-	int send_buffer=0,recv_buffer=0;
-	setsockopt(listen_fd,SOL_SOCKET,SO_SNDBUF,&send_buffer,sizeof(int));//发送缓冲区大小
-	setsockopt(listen_fd,SOL_SOCKET,SO_RCVBUF,&recv_buffer,sizeof(int));//接收缓冲区大小
+	int send_buffer = 0, recv_buffer = 0;
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_SNDBUF, &send_buffer, sizeof(int));//发送缓冲区大小
+	assert(ret == 0);
+	ret = setsockopt(listen_fd, SOL_SOCKET, SO_RCVBUF, &recv_buffer, sizeof(int));//接收缓冲区大小
+	assert(ret == 0);
 #endif
 
 	bzero(&sin,sizeof(sin));
@@ -80,18 +93,16 @@ int server_start()
 	sin.sin_addr.s_addr=inet_addr(rtcsp_host);
 	sin.sin_port=htons(rtcsp_port);
 
-	ret=bind(listen_fd,(struct sockaddr *)&sin,sizeof(sin));
-	if (ret<0)
-	{
+	ret = bind(listen_fd, (struct sockaddr *)&sin, sizeof(sin));
+	if (ret<0) {
 		system("echo -e \"\\E[31m\".[Failed]");
 		system("tput sgr0");
-		printf("Not on the host %s bind port %d\n",rtcsp_host,rtcsp_port);
+		printf("Not on the host %s bind port %d\n", rtcsp_host, rtcsp_port);
 		return 0;
 	}
 
 	ret=listen(listen_fd, rtcsp_backlog);
-	if (ret<0)
-	{
+	if (ret<0) {
 		system("echo -e \"\\E[31m\".[Failed]");
 		system("tput sgr0");
 		return 0;
@@ -99,23 +110,18 @@ int server_start()
 
 	pid=fork();
 
-	if (pid==-1)
-	{
+	if (pid==-1) {
 		system("echo -e \"\\E[31m\".[Failed]");
 		system("tput sgr0");
 		printf("fork failure!\n");
 		return 0;
 	}
-	if (pid>0)
-	{
+	if (pid>0) {
 		FILE *fp;
 		fp=fopen(rtcsp_pidfile,"w+");
-		if (fp==NULL)
-		{
+		if (fp==NULL) {
 			printf("file '%s' open fail.\n",rtcsp_pidfile);
-		}
-		else
-		{
+		} else {
 			fprintf(fp,"%d",pid);
 			fclose(fp);
 		}
@@ -126,24 +132,18 @@ int server_start()
 	struct passwd *pwnam;
 	pwnam = getpwnam(rtcsp_user);
 
-	if(pwnam)
-	{
+	if(pwnam) {
 		setuid(pwnam->pw_uid);
 		setgid(pwnam->pw_gid);
-	}
-	else
-	{
+	} else {
 		printf("Not found user %s.\n", rtcsp_user);
 	}
 
 	ret=setsid();
-	if (ret<1)
-	{
+	if (ret<1) {
 		system("echo -e \"\\E[31m\".[Failed]");
 		system("tput sgr0");
-	}
-	else
-	{
+	} else {
 		system("echo -e \"\\E[32m\"[Succeed]");
 		system("tput sgr0");
 	}
@@ -162,22 +162,18 @@ int server_stop()
 	flush();
 
 	fp=fopen(rtcsp_pidfile,"r+");
-	if (fp!=NULL)
-	{
+	if (fp!=NULL) {
 		fscanf(fp,"%d",&pid);
 		fclose(fp);
 		unlink(rtcsp_pidfile);
-		if (pid==getsid(pid))
-		{
+		if (pid==getsid(pid)) {
 			kill(pid,SIGINT);
-			while (pid==getsid(pid))
-			{
+			while (pid==getsid(pid)) {
 				printf(".");
 				flush();
 				i++;
 				sleep(1);
-				if (cols-i-9==0)
-				{
+				if (cols-i-9==0) {
 					kill(pid,SIGKILL);
 					break;
 				}
@@ -196,8 +192,7 @@ int server_stop()
 	return 0;
 }
 
-int server_status()
-{
+int server_status() {
 	FILE *fp;
 	int pid,i=19,cols=tput_cols();
 
@@ -206,12 +201,10 @@ int server_status()
 	flush();
 
 	fp=fopen(rtcsp_pidfile,"r+");
-	if (fp!=NULL)
-	{
+	if (fp!=NULL) {
 		fscanf(fp,"%d",&pid);
 		fclose(fp);
-		if (pid==getsid(pid))
-		{
+		if (pid==getsid(pid)) {
 			system("echo -e \"\\E[32m\"[Running]");
 			system("tput sgr0");
 			return 1;
