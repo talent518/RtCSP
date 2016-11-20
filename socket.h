@@ -14,4 +14,6 @@ int socket_send(conn_t *ptr,const char *data,int data_len);
 conn_t *socket_connect(const char *host, short int port);
 void socket_close(conn_t *ptr);
 
+void socket_opt(int sockfd);
+
 #endif

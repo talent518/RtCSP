@@ -42,6 +42,7 @@ AC_ARG_ENABLE(debug, [  --enable-debug turn on debug], CFLAGS="-g -O0 -Wall -DDE
 AC_ARG_ENABLE(debuginfo, [  --enable-debuginfo turn on debug conn info], CFLAGS="-g -O0 -Wall -DDEBUG_INFO")
 AC_ARG_ENABLE(debugfull, [  --enable-debugfull turn on debug full], CFLAGS="-g -O0 -DDEBUG -Wall -DDEBUG_INFO")
 AC_ARG_ENABLE(runtime, [  --enable-runtime turn on print run time], CFLAGS="$CFLAGS -DDEBUG_RUN_TIME")
+AC_ARG_ENABLE(skip-bench, [  --enable-skip-bench skip bench for send_recv handler], CFLAGS="$CFLAGS -DHAVE_SKIP_BENCH")
 
 # libevent is required
 AC_ARG_WITH(libevent, [  --with-libevent=DIR         where to find the libevent library, default /usr], , [with_libevent=/usr])
@@ -114,7 +115,7 @@ if test "$build_os" = "cygwin"; then
 fi
 
 enable_modules=yes
-AC_ARG_ENABLE(modules, [  --enable-modules turn on modules \[default=yes\]], enable_modules=$enableval)
+AC_ARG_ENABLE(modules, [  --enable-modules turn on modules [[default=yes]]], enable_modules=$enableval)
 
 let extsize=0
 let extbenchsize=0

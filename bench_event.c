@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "bench.h"
 #include "serialize.h"
@@ -101,9 +102,10 @@ sendnext:
 		__sync_fetch_and_add(&main_thread.requests, 1);
 		me->requests++;
 
-		if((++ptr->requests) < bench_preconn_requests) {
+		if((++ptr->requests) < bench_preconn_requests && !ptr->is_skip) {
 			send_request(ptr);
 		} else {
+			ptr->is_skip = false;
 			me->complete_conn_num++;
 			if(me->close_conn_num+me->complete_conn_num == me->conn_num) {
 				me->run_time = microtime() - me->tmp_time;
@@ -160,6 +162,14 @@ static void worker_notify_handler(const int fd, const short which, void *arg)
 	dprintf("%s(%c)\n", __func__, chr);
 
 	switch(chr) {
+		case 'N':
+			for(i=0; i<me->conn_num; i++) {
+				ptr = me->conns[i];
+				if(ptr) {
+					ptr->is_skip = true;
+				}
+			}
+			break;
 		case 'n':
 		case 'b': // begin send request
 			me->requests = 0;
@@ -260,6 +270,26 @@ static inline void send_recv_call() {
 	}
 }
 
+#ifdef HAVE_SKIP_BENCH
+static void stdin_handler(const int fd, short event, void *arg) {
+	register unsigned int i;
+	char chr = 'N';
+	char buf[1024] = "";
+
+	int ret = read(fd, buf, sizeof(buf));
+	if(ret <= 0) {
+		if (event_del(&main_thread.stdin_ev) == -1) {
+			fprintf(stderr, "Delete stdin event error.\n");
+			return;
+		}
+	}
+
+	for(i=0; i<bench_nthreads; i++) {
+		write(worker_threads[i].write_fd, &chr, 1);
+	}
+}
+#endif
+
 static void main_notify_handler(const int fd, const short which, void *arg)
 {
 	register unsigned int i;
@@ -332,9 +362,19 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 					event_set(&main_thread.timeout_int, -1, EV_PERSIST, timeout_req_handler, NULL);
 					event_base_set(main_thread.base, &main_thread.timeout_int);
 					if (event_add(&main_thread.timeout_int, &tv) == -1) {
-						perror("rebind timeout event");
+						fprintf(stderr, "rebind timeout event\n");
 						exit(1);
 					}
+
+				#ifdef HAVE_SKIP_BENCH
+					// stdin input event
+					event_set(&main_thread.stdin_ev, STDIN_FILENO, EV_READ|EV_PERSIST, stdin_handler, NULL);
+					event_base_set(main_thread.base, &main_thread.stdin_ev);
+					if (event_add(&main_thread.stdin_ev, NULL) == -1) {
+						fprintf(stderr, "bind stdin event\n");
+						exit(1);
+					}
+				#endif
 				} while(0);
 				break;
 		}
@@ -432,7 +472,7 @@ void thread_init() {
 	int fds[2];
 	for (i = 0; i < bench_nthreads; i++) {
         if (pipe(fds)) {
-            fprintf(stderr, "Can't create notify pipe");
+            fprintf(stderr, "Can't create notify pipe\n");
             exit(1);
         }
 
@@ -442,14 +482,14 @@ void thread_init() {
 
 		worker_threads[i].base = event_init();
 		if (worker_threads[i].base == NULL) {
-			fprintf(stderr, "event_init()");
+			fprintf(stderr, "event_init()\n");
 			exit(1);
 		}
 
 		event_set(&worker_threads[i].event, worker_threads[i].read_fd, EV_READ | EV_PERSIST, worker_notify_handler, &worker_threads[i]);
 		event_base_set(worker_threads[i].base, &worker_threads[i].event);
 		if (event_add(&worker_threads[i].event, 0) == -1) {
-			fprintf(stderr, "event_add()");
+			fprintf(stderr, "event_add()\n");
 			exit(1);
 		}
 	}
@@ -501,6 +541,7 @@ void loop_event() {
 
 	register unsigned int i;
 	
+#ifndef HAVE_SKIP_BENCH
 	int n = -1;
 	while(n<0 || n>=bench_length) {
 		printf("Module list:\n");
@@ -521,6 +562,10 @@ void loop_event() {
 		scanf("%d", &n);
 	}
 	main_thread.send_recv_id = n;
+#else
+	main_thread.modid = 0;
+	main_thread.send_recv_id = 0;
+#endif
 
 	main_thread.cthreads = 0;
 	main_thread.seconds = 0;
@@ -546,7 +591,7 @@ void loop_event() {
 	event_set(&main_thread.notify_ev, main_thread.read_fd, EV_READ | EV_PERSIST, main_notify_handler, NULL);
 	event_base_set(main_thread.base, &main_thread.notify_ev);
 	if (event_add(&main_thread.notify_ev, NULL) == -1) {
-		fprintf(stderr, "event_add()");
+		fprintf(stderr, "main thread notify event");
 		exit(1);
 	}
 
@@ -557,7 +602,7 @@ void loop_event() {
 	event_set(&main_thread.timeout_int, -1, EV_PERSIST, timeout_handler, NULL);
 	event_base_set(main_thread.base, &main_thread.timeout_int);
 	if (event_add(&main_thread.timeout_int, &tv) == -1) {
-		perror("timeout event");
+		fprintf(stderr, "timeout event");
 		exit(1);
 	}
 

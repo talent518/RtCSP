@@ -37,6 +37,7 @@ typedef struct _conn_t{
 	int rsize;
 
 	unsigned int requests;
+	bool is_skip;
 
 	struct event event;
 } conn_t;

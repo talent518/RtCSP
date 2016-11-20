@@ -16,6 +16,7 @@ typedef struct
 	struct event notify_ev;
 	struct event timeout_int;
 	struct event signal_int;
+	struct event stdin_ev;
 
 	unsigned int nthreads;
 
