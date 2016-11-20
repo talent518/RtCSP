@@ -58,8 +58,8 @@ static void read_handler(int sock, short event, void *arg)
 	conn_info(ptr);
 
 	ret=socket_recv(ptr,&data,&data_len);
-	if(ret<0) {//已放入缓冲区
-	} else if(ret==0) {//关闭连接
+	if(ret<0) {//宸叉斁鍏ョ紦鍐插尯
+	} else if(ret==0) {//鍏抽棴杩炴帴
 		conn_info_ex(ptr,"close socket connect");
 		socket_close(ptr);
 		me->conns[ptr->index] = NULL;
@@ -70,7 +70,7 @@ static void read_handler(int sock, short event, void *arg)
 			me->run_time = microtime() - me->tmp_time;
 			write(main_thread.write_fd, &chr, 1);
 		}
-	} else {//接收数据成功
+	} else {//鎺ユ敹鏁版嵁鎴愬姛
 		unsigned int tmplen;
 		srl_hash_t hkey = {NULL, 0};
 		
@@ -268,26 +268,63 @@ static inline void send_recv_call() {
 		send_recv->throughput_requests += (worker_threads[i].requests/worker_threads[i].run_time);
 		send_recv->throughput_ok_requests += (worker_threads[i].ok_requests/worker_threads[i].run_time);
 	}
+	
+	main_thread.requests = 0;
+	main_thread.ok_requests = 0;
+
+	main_thread.sum_requests = 0;
+	main_thread.sum_ok_requests = 0;
+
+	main_thread.sum_requests = 0;
+	main_thread.sum_ok_requests = 0;
+
+	main_thread.min_requests = UINT_MAX;
+	main_thread.min_ok_requests = UINT_MAX;
+
+	main_thread.max_requests = 0;
+	main_thread.max_ok_requests = 0;
+
+	main_thread.current_request_index = 0;
+	memset(main_thread.second_requests, 0, sizeof(main_thread.second_requests));
+	memset(main_thread.second_ok_requests, 0, sizeof(main_thread.second_ok_requests));
 }
 
 #ifdef HAVE_SKIP_BENCH
 static void stdin_handler(const int fd, short event, void *arg) {
 	register unsigned int i;
 	char chr = 'N';
-	char buf[1024] = "";
+	char *buf = NULL;
+	size_t len = 0;
+	int ret;
+	
+	event_del(&main_thread.stdin_ev);
+	main_thread.stdin_ev.ev_base = NULL;
 
-	int ret = read(fd, buf, sizeof(buf));
-	if(ret <= 0) {
-		if (event_del(&main_thread.stdin_ev) == -1) {
-			fprintf(stderr, "Delete stdin event error.\n");
-			return;
-		}
+	if((ret = getline(&buf, &len, stdin)) <= 0) {
+		fprintf(stderr, "From stdin read a line error.\n");
+		return;
 	}
 
 	for(i=0; i<bench_nthreads; i++) {
 		write(worker_threads[i].write_fd, &chr, 1);
 	}
 }
+
+void rebind_stdin_event(bool is_bind) {
+	// stdin input event
+	if(is_bind && main_thread.stdin_ev.ev_base) {
+		return;
+	}
+	
+	event_set(&main_thread.stdin_ev, STDIN_FILENO, EV_READ|EV_PERSIST, stdin_handler, NULL);
+	event_base_set(main_thread.base, &main_thread.stdin_ev);
+	if (event_add(&main_thread.stdin_ev, NULL) == -1) {
+		fprintf(stderr, "bind stdin event\n");
+		exit(1);
+	}
+}
+#else
+	#define rebind_stdin_event(e)
 #endif
 
 static void main_notify_handler(const int fd, const short which, void *arg)
@@ -335,6 +372,9 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 					worker_threads[i].ok_requests = 0;
 					write(worker_threads[i].write_fd, &buf[c], 1);
 				}
+				
+				rebind_stdin_event(true);
+				
 				break;
 			case 'c': // create connection for worker thread
 				if((++main_thread.cthreads) < bench_nthreads) {
@@ -365,16 +405,8 @@ static void main_notify_handler(const int fd, const short which, void *arg)
 						fprintf(stderr, "rebind timeout event\n");
 						exit(1);
 					}
-
-				#ifdef HAVE_SKIP_BENCH
-					// stdin input event
-					event_set(&main_thread.stdin_ev, STDIN_FILENO, EV_READ|EV_PERSIST, stdin_handler, NULL);
-					event_base_set(main_thread.base, &main_thread.stdin_ev);
-					if (event_add(&main_thread.stdin_ev, NULL) == -1) {
-						fprintf(stderr, "bind stdin event\n");
-						exit(1);
-					}
-				#endif
+					
+					rebind_stdin_event(false);
 				} while(0);
 				break;
 		}
@@ -522,6 +554,8 @@ static void print_test_info() {
 }
 
 void loop_event() {
+	memset(&main_thread, 0, sizeof(main_thread_t));
+	
 	// init main thread
 	main_thread.base = event_init();
 	if (main_thread.base == NULL) {
@@ -637,6 +671,11 @@ void loop_event() {
 	event_del(&main_thread.notify_ev);
 	event_del(&main_thread.timeout_int);
 	event_del(&main_thread.signal_int);
+#ifdef HAVE_SKIP_BENCH
+	if(main_thread.stdin_ev.ev_base) {
+		event_del(&main_thread.stdin_ev);
+	}
+#endif
 	event_base_free(main_thread.base);
 
 	print_test_info();

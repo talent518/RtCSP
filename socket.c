@@ -50,8 +50,8 @@ int recv_data_len(conn_t *ptr)
 	return len;
 }
 
-//½ÓÊÕÀ´×Ô¿Í»§¶ËÊı¾İ
-//·µ»ØÖµ:0(¹Ø±ÕÁ¬½Ó),-1(½ÓÊÕµ½µÄÊı¾İ³¤¶ÈÓëÊı¾İ°ü³¤¶È²»Ò»ÖÂ),>0(½ÓÊÕ³É¹¦)
+//æ¥æ”¶æ¥è‡ªå®¢æˆ·ç«¯æ•°æ®
+//è¿”å›å€¼:0(å…³é—­è¿æ¥),-1(æ¥æ”¶åˆ°çš„æ•°æ®é•¿åº¦ä¸æ•°æ®åŒ…é•¿åº¦ä¸ä¸€è‡´),>0(æ¥æ”¶æˆåŠŸ)
 int socket_recv(conn_t *ptr,char **data,int *data_len)
 {
 	int ret;
@@ -121,7 +121,7 @@ int socket_send(conn_t *ptr,const char *data,int data_len)
 		package[i]=data_len>>((3-i)*8);
 	}
 
-	memcpy(package+4,data,data_len);//Êı¾İ°üÄÚÈİ
+	memcpy(package+4,data,data_len);//æ•°æ®åŒ…å†…å®¹
 
 	ret=send(ptr->sockfd,package,plen,MSG_WAITALL);
 	free(package);
@@ -210,15 +210,15 @@ void socket_opt(int sockfd) {
 
 #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
 	struct timeval timeout = {3, 0};//3s
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));//·¢ËÍ³¬Ê±
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));//å‘é€è¶…æ—¶
 	assert(ret == 0);
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));//½ÓÊÕ³¬Ê±
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));//æ¥æ”¶è¶…æ—¶
 	assert(ret == 0);
 #else
 	int send_timeout = 3000, recv_timeout = 3000;
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//·¢ËÍ³¬Ê±
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(int));//å‘é€è¶…æ—¶
 	assert(ret == 0);
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//½ÓÊÕ³¬Ê±
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &recv_timeout, sizeof(int));//æ¥æ”¶è¶…æ—¶
 	assert(ret == 0);
 #endif
 
@@ -227,17 +227,17 @@ void socket_opt(int sockfd) {
 		int l_linger;
 	} linger;
 	linger m_sLinger;
-	m_sLinger.l_onoff=1;//(ÔÚclosesocket()µ÷ÓÃ,µ«ÊÇ»¹ÓĞÊı¾İÃ»·¢ËÍÍê±ÏµÄÊ±ºòÈİĞí¶ºÁô)
-	// Èç¹ûm_sLinger.l_onoff=0;Ôò¹¦ÄÜºÍ2.)×÷ÓÃÏàÍ¬;
-	m_sLinger.l_linger=5;//(ÈİĞí¶ºÁôµÄÊ±¼äÎª5Ãë)
+	m_sLinger.l_onoff=1;//(åœ¨closesocket()è°ƒç”¨,ä½†æ˜¯è¿˜æœ‰æ•°æ®æ²¡å‘é€å®Œæ¯•çš„æ—¶å€™å®¹è®¸é€—ç•™)
+	// å¦‚æœm_sLinger.l_onoff=0;åˆ™åŠŸèƒ½å’Œ2.)ä½œç”¨ç›¸åŒ;
+	m_sLinger.l_linger=5;//(å®¹è®¸é€—ç•™çš„æ—¶é—´ä¸º5ç§’)
 	ret = setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (const char*)&m_sLinger, sizeof(linger));
 	assert(ret == 0);
 
 #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
 	int send_recv_buffers = 16 * 1024;
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (char *)&send_recv_buffers, sizeof(int));//·¢ËÍ»º³åÇø´óĞ¡
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (char *)&send_recv_buffers, sizeof(int));//å‘é€ç¼“å†²åŒºå¤§å°
 	assert(ret == 0);
-	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (char *)&send_recv_buffers, sizeof(int));//½ÓÊÕ»º³åÇø´óĞ¡
+	ret = setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (char *)&send_recv_buffers, sizeof(int));//æ¥æ”¶ç¼“å†²åŒºå¤§å°
 	assert(ret == 0);
 #endif
 }

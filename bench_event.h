@@ -16,28 +16,30 @@ typedef struct
 	struct event notify_ev;
 	struct event timeout_int;
 	struct event signal_int;
+#ifdef HAVE_SKIP_BENCH
 	struct event stdin_ev;
+#endif
 
 	unsigned int nthreads;
 
 	int read_fd;
 	int write_fd;
 
-	unsigned int cthreads; // Íê³É´¦ÀíµÄÏß³ÌÊı
-	unsigned int modid; // Ä£¿éID
-	unsigned int send_recv_id; // ·¢ËÍÓë½ÓÊÕµÄ¾ä±úID
-	conn_send_recv_t *send_recv; // ·¢ËÍÓë½ÓÊÕµÄ¾ä±úÖ¸Õë
+	unsigned int cthreads; // å®Œæˆå¤„ç†çš„çº¿ç¨‹æ•°
+	unsigned int modid; // æ¨¡å—ID
+	unsigned int send_recv_id; // å‘é€ä¸æ¥æ”¶çš„å¥æŸ„ID
+	conn_send_recv_t *send_recv; // å‘é€ä¸æ¥æ”¶çš„å¥æŸ„æŒ‡é’ˆ
 
-	volatile unsigned int conn_num; // µ±Ç°Á¬½ÓÊı
+	volatile unsigned int conn_num; // å½“å‰è¿æ¥æ•°
 
-	unsigned int second_requests[AVG_SECONDS], second_ok_requests[AVG_SECONDS]; // ×î½üAVG_SECONDSÃëµÄÇëÇóÊı/³É¹¦ÊıµÄ¼ÇÂ¼
+	unsigned int second_requests[AVG_SECONDS], second_ok_requests[AVG_SECONDS]; // æœ€è¿‘AVG_SECONDSç§’çš„è¯·æ±‚æ•°/æˆåŠŸæ•°çš„è®°å½•
 	unsigned int current_request_index;
 
-	unsigned int sum_requests, sum_ok_requests; // ×î½üAVG_SECONDSÃëµÄÇëÇóÊı/³É¹¦ÊıµÄÆ½¾ùÖµ
-	unsigned int min_requests, min_ok_requests; // ×îĞ¡Öµ
-	unsigned int max_requests, max_ok_requests; // ×î´óÖµ
+	unsigned int sum_requests, sum_ok_requests; // æœ€è¿‘AVG_SECONDSç§’çš„è¯·æ±‚æ•°/æˆåŠŸæ•°çš„å¹³å‡å€¼
+	unsigned int min_requests, min_ok_requests; // æœ€å°å€¼
+	unsigned int max_requests, max_ok_requests; // æœ€å¤§å€¼
 
-	volatile unsigned int requests,ok_requests; // µ±Ç°ÃëµÄÇëÇóÊı/³É¹¦ÊıµÄÖµ
+	volatile unsigned int requests,ok_requests; // å½“å‰ç§’çš„è¯·æ±‚æ•°/æˆåŠŸæ•°çš„å€¼
 	unsigned int seconds;
 
 	double tmp_time,run_time;
@@ -56,9 +58,9 @@ typedef struct
 	conn_t **conns;
 	unsigned int conn_num;
 
-	unsigned int complete_conn_num; // Íê³ÉµÄÁ¬½ÓÊı
-	unsigned int close_conn_num; // ¹Ø±ÕµÄÁ¬½ÓÊı
-	unsigned int preclose_conn_num; // Á¬½ÓÊ§°ÜÊı
+	unsigned int complete_conn_num; // å®Œæˆçš„è¿æ¥æ•°
+	unsigned int close_conn_num; // å…³é—­çš„è¿æ¥æ•°
+	unsigned int preclose_conn_num; // è¿æ¥å¤±è´¥æ•°
 
 	unsigned int requests,ok_requests;
 

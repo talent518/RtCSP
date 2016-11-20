@@ -88,7 +88,7 @@ void is_accept_conn(bool do_accept) {
 static void close_conn_free(queue_item_t *item) {
 	conn_t *ptr = item->data;
 	
-	printf("%s: %d\n", __func__, ptr->index);
+	dprintf("%s: %d\n", __func__, ptr->index);
 	conn_info(ptr);
 	clean_conn(ptr);
 	hook_conn_close(ptr);
@@ -167,15 +167,14 @@ static void read_handler(int sock, short event,	void* arg)
 	conn_info(ptr);
 
 	ret=socket_recv(ptr,&data,&data_len);
-	if(ret<0) {//已放入缓冲区
-	} else if(ret==0) {//关闭连接
-		event_del(&ptr->event);
+	if(ret<0) {//宸叉斁鍏ョ紦鍐插尯
+	} else if(ret==0) {//鍏抽棴杩炴帴
 		clean_conn(ptr);
 		hook_conn_close(ptr);
 		remove_conn(ptr);
 
 		is_accept_conn(true);
-	} else {//接收数据成功
+	} else {//鎺ユ敹鏁版嵁鎴愬姛
 		conn_recv_func_t call;
 		unsigned int tmplen;
 		srl_hash_t hkey = {NULL, 0};
@@ -236,7 +235,7 @@ static void notify_handler(const int fd, const short which, void *arg)
 		dprintf("notify_handler: notify(%c) threadId(%d)\n", chr, me->id);
 
 		switch(chr) {
-			case 'x': // 处理连接关闭对列
+			case 'x': // 澶勭悊杩炴帴鍏抽棴瀵瑰垪
 				ptr=queue_pop(me->close_queue);
 
 				assert(ptr);
@@ -248,7 +247,7 @@ static void notify_handler(const int fd, const short which, void *arg)
 
 				is_accept_conn(true);
 				break;
-			case '-': // 结束worker/notify线程
+			case '-': // 缁撴潫worker/notify绾跨▼
 				event_base_loopbreak(me->base);
 				break;
 			case 'l':
@@ -335,10 +334,10 @@ static void listen_notify_handler(const int fd, const short which, void *arg)
 		dprintf("%s(%c)\n", __func__, buf[i]);
 
 		switch(buf[i]) {
-			case 'e': // 接受连接(enable)
+			case 'e': // 鎺ュ彈杩炴帴(enable)
 				is_accept_conn_ex(true);
 				break;
-			case 'd': // 禁止连接(disable)
+			case 'd': // 绂佹杩炴帴(disable)
 				is_accept_conn_ex(false);
 				break;
 			default:
