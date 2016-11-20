@@ -55,11 +55,11 @@ void demo_conn_close(conn_t *ptr) {
 }
 
 void demo_thread_init(worker_thread_t *thread) {
-	printf("%s[%d]...\n",__func__, thread->id);
+	dprintf("%s[%d]...\n",__func__, thread->id);
 }
 
 void demo_thread_destory(worker_thread_t *thread) {
-	printf("%s[%d]...\n",__func__, thread->id);
+	dprintf("%s[%d]...\n",__func__, thread->id);
 }
 
 void demo_start() {
@@ -69,7 +69,7 @@ void demo_start() {
 		return;
 	}
 	
-	printf("%s...\n",__func__);
+	dprintf("%s...\n",__func__);
 }
 
 void demo_stop() {
@@ -79,7 +79,7 @@ void demo_stop() {
 		return;
 	}
 
-	printf("%s...\n",__func__);
+	dprintf("%s...\n",__func__);
 }
 
 bool demo_string(conn_t *ptr, const char *data, int datalen, GString *gstr) {

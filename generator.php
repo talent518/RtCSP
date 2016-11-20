@@ -168,7 +168,7 @@ function confirm($file) {
 		do {
 			echo 'Is replace file <', $file, '> (Y/n): ';
 		
-			$c = strtolower(trim(fgetc(STDIN)));
+			$c = strtolower(trim(fgets(STDIN)));
 		} while($c !== 'y' && $c !== 'n' && $c !== '');
 	} else {
 		$c = 'y';

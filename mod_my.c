@@ -72,7 +72,7 @@ void mod_my_thread_init(worker_thread_t *thread) {
 		exit(1);
 	}
 	
-	printf("%s[%d]...\n",__func__, thread->id);
+	dprintf("%s[%d]...\n",__func__, thread->id);
 }
 
 void mod_my_thread_destory(worker_thread_t *thread) {
@@ -81,7 +81,7 @@ void mod_my_thread_destory(worker_thread_t *thread) {
 	
 	event_del(&mod_my_events[thread->id+1]);
 	
-	printf("%s[%d]...\n",__func__, thread->id);
+	dprintf("%s[%d]...\n",__func__, thread->id);
 }
 
 void mod_my_start() {
@@ -163,7 +163,7 @@ void mod_my_start() {
 		exit(1);
 	}
 
-	printf("%s...\n",__func__);
+	dprintf("%s...\n",__func__);
 }
 
 void mod_my_stop() {
@@ -176,7 +176,7 @@ void mod_my_stop() {
 	event_del(&mod_my_events[0]);
 	free(mod_my_events);
 	
-	printf("%s...\n",__func__);
+	dprintf("%s...\n",__func__);
 }
 
 rtcsp_module_t mod_my_module={
