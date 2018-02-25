@@ -81,7 +81,7 @@ foreach($list as $i=>$table) {
 	echo "\t", $i, ')', $table, PHP_EOL;
 }
 echo 'Please input a number for id): ';
-$i = fgets(STDIN, 1024) + 0;
+@$i = fgets(STDIN, 1024) + 0;
 if(isset($list[$i])) {
 	$table = $list[$i];
 } else if($i<0) {
