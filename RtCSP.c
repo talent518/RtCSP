@@ -1,5 +1,6 @@
 #include "config.h"
 #include "getopt.h"
+#include "api.h"
 #include "RtCSP.h"
 
 #include <stdio.h>

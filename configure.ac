@@ -72,6 +72,9 @@ RTCSP_ADD_INCLUDE($with_glib/include/glib-2.0)
 if test -d "$with_glib/lib64/glib-2.0/include"; then
 	RTCSP_ADD_INCLUDE($with_glib/lib64/glib-2.0/include)
 	RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib64)
+elif test -d "$with_glib/lib/x86_64-linux-gnu/glib-2.0/include"; then
+	RTCSP_ADD_INCLUDE($with_glib/lib/x86_64-linux-gnu/glib-2.0/include)
+        RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
 else
 	RTCSP_ADD_INCLUDE($with_glib/lib/glib-2.0/include)
 	RTCSP_ADD_LIBRARY_WITH_PATH($with_glib/lib)
