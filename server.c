@@ -18,8 +18,6 @@
 #include "loop_event.h"
 #include "socket.h"
 
-#define flush() fflush(stdout)
-
 unsigned int rtcsp_backlog=1024;
 
 char *rtcsp_host="0.0.0.0";
@@ -40,13 +38,11 @@ int server_start() {
 
 	printf("Starting RtCSP server");
 	strnprint(".",cols-i-9);
-	flush();
+	fflush(stdout);
 
 	listen_fd=socket(AF_INET,SOCK_STREAM,0);
 	if (listen_fd<0) {
-		system("echo -e \"\\E[31m\".[Failed]");
-		system("tput sgr0");
-		printf("Not on the host %s bind port %d\n",rtcsp_host,rtcsp_port);
+		printf("\033[31m[Failed]\033[0m\nNot on the host %s bind port %d\n",rtcsp_host,rtcsp_port);
 		return 0;
 	}
 
@@ -59,25 +55,20 @@ int server_start() {
 
 	ret = bind(listen_fd, (struct sockaddr *)&sin, sizeof(sin));
 	if (ret<0) {
-		system("echo -e \"\\E[31m\".[Failed]");
-		system("tput sgr0");
-		printf("Not on the host %s bind port %d\n", rtcsp_host, rtcsp_port);
+		printf("\033[31m[Failed]\033[0m\nNot on the host %s bind port %d\n", rtcsp_host, rtcsp_port);
 		return 0;
 	}
 
 	ret=listen(listen_fd, rtcsp_backlog);
 	if (ret<0) {
-		system("echo -e \"\\E[31m\".[Failed]");
-		system("tput sgr0");
+		printf("\033[31m[Failed]\033[0m\n");
 		return 0;
 	}
 
 	pid=fork();
 
 	if (pid==-1) {
-		system("echo -e \"\\E[31m\".[Failed]");
-		system("tput sgr0");
-		printf("fork failure!\n");
+		printf("\033[31m[Failed]\033[0m\nfork failure!\n");
 		return 0;
 	}
 	if (pid>0) {
@@ -105,12 +96,12 @@ int server_start() {
 
 	ret=setsid();
 	if (ret<1) {
-		system("echo -e \"\\E[31m\".[Failed]");
-		system("tput sgr0");
+		printf("\033[31m[Failed]\033[0m\n");
 	} else {
-		system("echo -e \"\\E[32m\"[Succeed]");
-		system("tput sgr0");
+		printf("\033[32m[Succeed]\033[0m\n");
 	}
+
+	fflush(stdout);
 
 	loop_event(listen_fd);
 
@@ -123,7 +114,7 @@ int server_stop()
 	int pid,i=21,cols=tput_cols();
 
 	printf("Stopping RtCSP server");
-	flush();
+	fflush(stdout);
 
 	fp=fopen(rtcsp_pidfile,"r+");
 	if (fp!=NULL) {
@@ -134,7 +125,7 @@ int server_stop()
 			kill(pid,SIGINT);
 			while (pid==getsid(pid)) {
 				printf(".");
-				flush();
+				fflush(stdout);
 				i++;
 				sleep(1);
 				if (cols-i-9==0) {
@@ -143,16 +134,14 @@ int server_stop()
 				}
 			}
 			strnprint(".",cols-i-9);
-			flush();
-			system("echo -e \"\\E[32m\"[Succeed]");
-			system("tput sgr0");
+			printf("\033[32m[Succeed]\033[0m");
+			fflush(stdout);
 			return 1;
 		}
 	}
 	strnprint(".",cols-i-8);
-	flush();
-	system("echo -e \"\\E[31m\"[Failed]");
-	system("tput sgr0");
+	printf("\033[31m[Failed]\033[0m\n");
+	fflush(stdout);
 	return 0;
 }
 
@@ -162,20 +151,20 @@ int server_status() {
 
 	printf("RtCSP server status");
 	strnprint(".",cols-i-9);
-	flush();
+	fflush(stdout);
 
 	fp=fopen(rtcsp_pidfile,"r+");
 	if (fp!=NULL) {
 		fscanf(fp,"%d",&pid);
 		fclose(fp);
 		if (pid==getsid(pid)) {
-			system("echo -e \"\\E[32m\"[Running]");
-			system("tput sgr0");
+			printf("\033[32m[Running]\033[0m");
+			fflush(stdout);
 			return 1;
 		}
 		unlink(rtcsp_pidfile);
 	}
-	system("echo -e \"\\E[31m\"[stopped]");
-	system("tput sgr0");
+	printf("\033[31m[stopped]\033[0m\n");
+	fflush(stdout);
 	return 0;
 }
