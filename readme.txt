@@ -1,13 +1,14 @@
-ÊµÊ±ÁÄÌìĞòÁĞ»¯Ğ­Òé(Real-time chat serialization protocol)
+å®æ—¶èŠå¤©åºåˆ—åŒ–åè®®(Real-time chat serialization protocol)
 
-1. Éú³ÉÅäÖÃ(autotools):./autogen.sh
-	./autogen.sh 1 Ä¬ÈÏµÄglibºÍlibevent¿âÎ»ÖÃÊÇ/usr/local²¢»á×Ô¶¯Ö´ĞĞ ./configure --with-libevent=/usr/local --with-glib=/usr/local
-2. ÅäÖÃ£º./configure
+1. ç”Ÿæˆé…ç½®(autotools):./autogen.sh
+	./autogen.sh 1 é»˜è®¤çš„glibå’Œlibeventåº“ä½ç½®æ˜¯/usr/localå¹¶ä¼šè‡ªåŠ¨æ‰§è¡Œ ./configure --with-libevent=/usr/local --with-glib=/usr/local
+2. é…ç½®ï¼š./configure
 	--with-glib=/usr/local : glib(>=2.40.0) install path
 	--with-libevent=/usr/local : libevent(>=2.0.21) install path
 
-3. ±àÒë£ºmake
-4. ÔËĞĞ·şÎñ¶Ë£º./rtcspd -s start
-5. ÔËĞĞÑ¹Á¦²âÊÔ£º./rtcspb
-6. °²×°£ºmake install
-7. demo£º×îÍêÕûµÄÄ£¿éÊµÀı
+3. ç¼–è¯‘ï¼šmake
+4. è¿è¡ŒæœåŠ¡ç«¯ï¼š./rtcspd -s start
+5. è¿è¡Œå‹åŠ›æµ‹è¯•ï¼š./rtcspb
+6. å®‰è£…ï¼šmake install
+7. demoï¼šæœ€å®Œæ•´çš„æ¨¡å—å®ä¾‹
+
